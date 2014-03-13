@@ -1,6 +1,7 @@
+include OBJX
 all:
+	@set -e; \
 	./mk
 .PHONY:clean
-include OBJX
 clean:
-	-rm $(OBJ) $(subst .o,.d,$(OBJ)) ./run
+	-rm -r $(OBJ) $(subst .o,.d,$(OBJ)) run 

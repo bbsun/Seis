@@ -1,0 +1,22 @@
+SOURCES = ./test/hello.cpp \
+    ./test/file2.cpp
+
+OBJ = $(patsubst %.cpp, %.o,$(SOURCES))
+CXX = icpc
+CXXFLAGS = -std=c++0x
+all:run
+
+%.d:%.cpp
+	@set -e; rm -f $@; \
+	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's, \($*\)\.o[ :]*,\1.o $@ : ,g' <$@.$$$$ >$@; \
+	rm -f $@.$$$$
+sinclude $(SOURCES:.cpp=.d)
+run:$(OBJ)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o run
+.PHONY:clean
+.PHONY:cleand
+clean:
+	-rm $(OBJ) $(subst .o,.d,$(OBJ)) ./run
+cleand:
+	-rm $(subst .o,.d,$(OBJ)) 

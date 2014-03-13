@@ -1,4 +1,4 @@
-OBJ = ./test/hello.o \
-    ./test/file2.o
+OBJ = test/hello.o \
+    test/file2.o
 CXX = icpc
 CXXFLAGS = -std=c++0x

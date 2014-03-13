@@ -1,4 +1,4 @@
 include OBJX
 run:$(OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@
-include $(OBJ:.o=.d)
+

@@ -11,7 +11,8 @@
 #include <assert.h>
 #include <iostream>
 #include <string.h>
-using namespace std;
+using std::endl;
+using std::cout;
 #ifndef MEMORY_H_H
 #define MEMORY_H_H 
 template <typename T> class MyAlloc

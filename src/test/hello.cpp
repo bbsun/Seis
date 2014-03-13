@@ -17,6 +17,8 @@ int main(int argc, char *argv[], char *envp[])
 {
   float * f=MyAlloc<float>::alc(10);
   MyAlloc<float>::free(f);
+  double ***ff=MyAlloc<double>::alc(10,10,10);
+  MyAlloc<double>::free(ff);
   const string stringxx("const string");
   print << stringxx <<ed;
   for(auto & c:stringxx)
