@@ -2,5 +2,3 @@ include OBJX
 run:$(OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 include $(OBJ:.o=.d)
-clean:
-	-rm *.o run
