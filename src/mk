@@ -1,0 +1,8 @@
+#!/bin/bash
+#automatic generate dependence for each c cource file
+echo "----------------compile the code---------------"
+make -B -f makefile_1
+#makefile 
+make -f makefile_2
+echo "----------------run the code-------------------"
+./run

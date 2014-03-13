@@ -1,0 +1,5 @@
+include OBJX
+all: $(subst .o,.d,$(OBJ))
+	echo $^
+%.d:%.cpp
+	$(CC) -M  $< > $@
