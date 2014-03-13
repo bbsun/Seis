@@ -11,10 +11,10 @@
 #include <assert.h>
 #include <iostream>
 #include <string.h>
-using std::cout, std::endl;
+using namespace std;
 #ifndef MEMORY_H_H
 #define MEMORY_H_H 
-template <typename T> class MyAllocator 
+template <typename T> class MyAlloc
 {
  public:
   static T* alc(size_t n1)

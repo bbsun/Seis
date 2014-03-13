@@ -4,6 +4,7 @@
 #include "hello.h"
 #include "file2.h"
 #include <string>
+#include "../util/memory.h"
 using std::string;
 #define print std::cout 
 #define ed    std::endl;
@@ -14,6 +15,8 @@ int a_out;
 // variable defined outside function has a default value of zero
 int main(int argc, char *argv[], char *envp[])
 {
+  float * f=MyAlloc<float>::alc(10);
+  MyAlloc<float>::free(f);
   const string stringxx("const string");
   print << stringxx <<ed;
   for(auto & c:stringxx)
