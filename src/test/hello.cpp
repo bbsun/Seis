@@ -5,6 +5,7 @@
 #include "file2.h"
 #include <string>
 #include "../util/memory.h"
+#include "../util/arraymath.h"
 using std::string;
 #define print std::cout 
 #define ed    std::endl;
@@ -16,6 +17,60 @@ int a_out;
 int main(int argc, char *argv[], char *envp[])
 {
   float * f=MyAlloc<float>::alc(10);
+  float * d=MyAlloc<float>::alc(10);
+  float * k=MyAlloc<float>::alc(10);
+  for(int i=0;i<10;i++){
+    d[i]=i*1.0f;
+    k[i]=11.0f-i*1.0f;
+  }
+  dump("d",d,10);
+  dump("k",k,10);
+  print<<"f = d"<<ed;
+  opern(f,d,(float *)0,COPY,10); dump("f",f,10);
+  print<<"f = sqrt(d)"<<ed
+  opern(f,d, d, SQRT,10);        dump("f",f,10);
+  print<<"f = d*10"<<ed;
+  opern(f,d, d, SCAL,10,10.0);   dump("f",f,10);
+  print<<"f = d + k"<<ed;
+  opern(f,d, k, ADD,10);   dump("f",f,10);
+  print<<"f = d - k"<<ed;
+  opern(f,d, k, SUB,10);   dump("f",f,10);
+  print<<"f = d * k"<<ed;
+  opern(f,d, k, MUL,10);   dump("f",f,10);
+  print<<"f = d / k"<<ed;
+  opern(f,d, k, DIV,10);   dump("f",f,10);
+  print<<"f = 2*d + 3*k"<<ed;
+  opern(f,d, k, ADDSCAL,10,2.0,3.0);   dump("f",f,10);
+
+  float ** f2=MyAlloc<float>::alc(3,3);
+  float ** d2=MyAlloc<float>::alc(3,3);
+  float ** k2=MyAlloc<float>::alc(3,3);
+  for(int j=0;j<3;j++)
+  for(int i=0;i<3;i++){
+    int ii=i+1;
+    int jj=j+1;
+    d2[i][j]=jj+ii*1.0f;
+    k2[i][j]=ii*jj*1.0f;
+  }
+  dump("d2",d2,3,3);
+  dump("k2",k2,3,3);
+  print<<"f2 = d2"<<ed;
+  opern(f2,d2, d2,COPY,3,3); dump("f2",f2,3,3);
+  print<<"f2 = sqrt(d2)"<<ed
+    opern(f2,d2, d2, SQRT,3,3);        dump("f2",f2,3,3);
+  print<<"f2 = d2*10"<<ed;
+  opern(f2,d2, d2, SCAL,3,3,10.0);   dump("f2",f2,3,3);
+  print<<"f2 = d2 + k2"<<ed;
+  opern(f2,d2, k2, ADD,3,3);   dump("f2",f2,3,3);
+  print<<"f2 = d2 - k2"<<ed;
+  opern(f2,d2, k2, SUB,3,3);   dump("f2",f2,3,3);
+  print<<"f2 = d2 * k2"<<ed;
+  opern(f2,d2, k2, MUL,3,3);   dump("f2",f2,3,3);
+  print<<"f2 = d2 / k2"<<ed;
+  opern(f2,d2, k2, DIV,3,3);   dump("f2",f2,3,3);
+  print<<"f2= 2*d2 + 3*k2"<<ed;
+  opern(f2,d2, k2, ADDSCAL,3,3,2.0,3.0);   dump("f2",f2,3,3);
+  return 0;
   MyAlloc<float>::free(f);
   double ***ff=MyAlloc<double>::alc(10,10,10);
   MyAlloc<double>::free(ff);

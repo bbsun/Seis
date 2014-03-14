@@ -1,9 +1,6 @@
 /**
  *@file memory.h
  *@brief memory allocation for 1d, 2d, 3d and 4d array
- *
- *
- *
  *@author Bingbing Sun
  *@version March-13-2014
  */

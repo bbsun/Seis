@@ -1,4 +1,4 @@
-include OBJX
+include /home/sunbb/Documents/git/repos/seis/src/OBJX
 all:
 	@set -e; \
 	./mk

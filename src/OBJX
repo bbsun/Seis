@@ -1,4 +1,5 @@
 OBJ = test/hello.o \
-    test/file2.o
+    test/file2.o  \
+    util/debug.o
 CXX = icpc
 CXXFLAGS = -std=c++0x
