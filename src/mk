@@ -4,4 +4,3 @@ echo "----------------compile the code---------------"
 make -B -f makefile_1
 #makefile 
 make -f makefile_3
-echo "----------------run the code-------------------"

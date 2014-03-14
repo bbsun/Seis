@@ -6,6 +6,7 @@
 #include <string>
 #include "../util/memory.h"
 #include "../util/arraymath.h"
+#include "../util/coord.h"
 using std::string;
 #define print std::cout 
 #define ed    std::endl;
@@ -16,6 +17,11 @@ int a_out;
 // variable defined outside function has a default value of zero
 int main(int argc, char *argv[], char *envp[])
 {
+  char coordsFile[1024] = "/home/sunbb/sh/coords_ns256.txt";
+  char outFile[1024]="/home/sunbb/sh/coords_ns256_out.txt";
+  Coords::printShotInfo(1,10,coordsFile,outFile);
+  Coords::printShotInfo(1,10,coordsFile,0);
+  return 0;
   float * f=MyAlloc<float>::alc(10);
   float * d=MyAlloc<float>::alc(10);
   float * k=MyAlloc<float>::alc(10);
@@ -25,6 +31,13 @@ int main(int argc, char *argv[], char *envp[])
   }
   dump("d",d,10);
   dump("k",k,10);
+  print<<"out = d.*d"<<ed;
+  double a = opern(d,d,DOTPRODUCT,10);
+  cout<<a<<endl;
+  print<<"d=10"<<ed;
+  opern(d,VALUE,10,10.0f); dump("d",d,10);
+  print<<"d=random"<<ed;
+  opern(d,RANDOM,10);        dump("d",d,10);
   print<<"f = d"<<ed;
   opern(f,d,(float *)0,COPY,10); dump("f",f,10);
   print<<"f = sqrt(d)"<<ed

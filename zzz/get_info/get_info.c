@@ -1,0 +1,156 @@
+#include"stdio.h"
+#include"stdlib.h"
+#include "mysu.h"
+#include "string.h"
+
+long getfilesize(FILE *fp);
+void getinfo(char *infile,char *outfile,char *key); 
+int  main( int argc, char *argv[])
+{
+        if(argc != 4){
+          printf(" \n  get_info -- statistics header information\n\n");
+          printf("  Usage:\n\n  get_info  [infile] [infofile] [key] \n\n");
+          printf("  Parameters: \n");
+          printf("  infile  :  inputfile in SU format\n");
+          printf("  infofile:  file to store statistics information\n");
+          printf("  key=fldr/ep/cdp/sx    keyword describing the gathers\n\n");
+          return 0;
+        }
+        printf("input file is %s\n",argv[1]);
+        printf("info file  is %s\n",argv[2]);
+        printf("keyword    is %s\n",argv[3]);	
+        getinfo(argv[1],argv[2],argv[3]);
+	return 0;
+}
+
+void getinfo(char *infile,char *outfile,char *key)
+{
+    int nt,nseek;
+    int dt,shotnumber,k,olds,traceall;
+    long POS=0;
+    int *shot,ikey;
+    su tr;
+    FILE* outfp;
+    FILE* infp;
+    infp=fopen(infile,"r");
+    outfp=fopen(outfile,"w");
+    if(! strcmp(key,"sx"))
+        ikey=18;
+    else if(! strcmp(key,"ep"))
+        ikey=4;
+    else if(! strcmp(key,"cdp"))
+        ikey=5;
+    else 
+        ikey=2;
+    //fprintf(stderr,"ikey=%d\n",ikey);
+
+    shot=&tr.tracl+ikey;        
+    k=1;shotnumber=0;
+    fread(&tr,1,240,infp);//读第一道
+    dt=tr.dt;//tr.dt:采样间隔
+    nt=tr.ns;//nt:采样点数 tr.ns：采样点数
+    olds=*shot;//olds:原先炮号
+    nseek=nt*4+240;//nseek:一道的数据大小
+    traceall=getfilesize(infp)/nseek;
+    int ntr=1;
+    int maxntr=1;
+    int starttrace=1;
+    int sx,sy,xmin,xmax,ymin,ymax;
+    int xminall,xmaxall,yminall,ymaxall;
+    if(tr.gx<tr.sx){
+       xmin=tr.gx;
+       xmax=tr.sx;
+    }
+    else{
+       xmin=tr.sx;
+       xmax=tr.gx;
+    }
+    if(tr.gy<tr.sy){
+       ymin=tr.gy;
+       ymax=tr.sy;
+    }
+    else{
+       ymin=tr.sy;
+       ymax=tr.gy;
+    }
+    sx=tr.sx;
+    sy=tr.sy;
+    xminall=xmin;
+    xmaxall=xmax;
+    yminall=ymin;
+    ymaxall=ymax;
+    fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",0,0,0,0,0,0,0,0);
+    //读su文件
+    do {
+        POS+=nseek;//指针指向下一道道头位置
+        fseek(infp,POS,0);//指针指向文件开始
+        fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
+        ntr++;//ntr：某炮的道数
+        if(*shot!=olds)//判断是否到了下一炮
+        {
+            shotnumber++;//统计总炮数
+            olds=*shot;
+            if(maxntr<ntr-1)
+                maxntr=ntr-1;
+            //输出第一炮的信息
+            fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d\n",
+                    shotnumber,ntr-1,starttrace,starttrace+ntr-2,sx,sy,xmin,xmax,ymin,ymax);
+            starttrace=k+1;
+            sx=tr.sx;
+            sy=tr.sy;
+            ntr=1;
+            if(tr.gx<tr.sx){
+               xmin=tr.gx;
+               xmax=tr.sx;
+            }
+            else{
+               xmin=tr.sx;
+               xmax=tr.gx;
+            }
+            if(tr.gy<tr.sy){
+               ymin=tr.gy;
+               ymax=tr.sy;
+            }
+            else{
+               ymin=tr.sy;
+               ymax=tr.gy;
+            }
+        }
+        k++;
+        if(tr.gx<xmin)
+            xmin=tr.gx;
+        if(tr.gx>xmax)
+            xmax=tr.gx;
+        if(tr.gy<ymin)
+            ymin=tr.gy;
+        if(tr.gy>ymax)
+            ymax=tr.gy;
+        if(xminall>xmin)
+            xminall=xmin;
+        if(xmaxall<xmax)
+            xmaxall=xmax;
+        if(yminall>ymin)
+            yminall=ymin;
+        if(ymaxall<ymax)
+            ymaxall=ymax;
+        if(k%1000==1) fprintf(stderr,"trcae=%-10d      finished(%) %5.1f\n",k,100.*k/traceall);
+    }while(k<=traceall);//traceall是总道数，循环里面是读每一道的信息
+    shotnumber++;
+    if(maxntr<ntr-1)
+        maxntr=ntr-1;
+    fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d\n",
+            shotnumber,ntr-1,starttrace,starttrace+ntr-2,sx,sy,xmin,xmax,ymin,ymax);
+
+    rewind(outfp);
+    fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",shotnumber,maxntr,nt,dt,xminall,xmaxall,yminall,ymaxall);
+    fclose(infp);
+    fclose(outfp);
+}
+
+long getfilesize(FILE *fp)
+{
+    if(fp==NULL) return -1;
+    fseek(fp,0L,SEEK_END);
+    return ftell(fp);
+}
+
