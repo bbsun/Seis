@@ -3,4 +3,4 @@ OBJ = test/hello.o \
     util/debug.o \
     util/coord.o
 CXX = mpicxx
-CXXFLAGS = -std=c++0x
+CXXFLAGS = -std=c++0x -w

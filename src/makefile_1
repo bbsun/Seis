@@ -5,6 +5,6 @@ all: $(subst .o,.d,$(OBJ))
 %.d:%.cpp
 	@set -e; \
 	$(CXX) -MM  $< > tmp.xx; \
-	echo -n $(dir $<) > tmp.yy;\
+	/bin/echo -n "$(dir $<)" > tmp.yy; \
 	cat  -s tmp.yy tmp.xx > $@;\
 	rm tmp.xx tmp.yy
