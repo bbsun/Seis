@@ -51,7 +51,7 @@ int main(int argc, char *argv[], char *envp[])
   print<<"f = d * k"<<ed;
   opern(f,d, k, MUL,10);   dump("f",f,10);
   print<<"f = d / k"<<ed;
-  opern(f,d, k, DIV,10);   dump("f",f,10);
+  opern(f,d, k, DIV,10);   dump("f",f,10);dump("f",f,10);
   print<<"f = 2*d + 3*k"<<ed;
   opern(f,d, k, ADDSCAL,10,2.0,3.0);   dump("f",f,10);
 
