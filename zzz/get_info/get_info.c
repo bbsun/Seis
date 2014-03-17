@@ -5,36 +5,41 @@
 char info1[1024]="    CSP(SP)     NTR       NT        DT     XMINALL   XMAXALL   YMINALL   YMAXALL";
 char info2[1024]="        SP       NTR     BEGIN       END        SX       SY       XMIN      XMAX      YMIN      YMAX";
 long getfilesize(FILE *fp);
-void getinfo(char *infile,char *outfile,char *key); 
+void getinfo(char *infile,char *outfile,char* outfile2,char *key); 
 int  main( int argc, char *argv[])
 {
-  if(argc != 4){
+  if(argc != 5){
     printf(" \n  get_info -- statistics header information\n\n");
     printf("  Usage:\n\n  get_info  [infile] [infofile] [key] \n\n");
     printf("  Parameters: \n");
     printf("  infile  :  inputfile in SU format\n");
     printf("  infofile:  file to store statistics information\n");
+    printf("  coodfile:  file to store the coordinates\n");
     printf("  key=fldr/ep/cdp/sx    keyword describing the gathers\n\n");
     return 0;
   }
   printf("input file is %s\n",argv[1]);
   printf("info file  is %s\n",argv[2]);
-  printf("keyword    is %s\n",argv[3]);	
-  getinfo(argv[1],argv[2],argv[3]);
+  printf("coord file is %s\n",argv[3]);
+  printf("keyword    is %s\n",argv[4]);
+  getinfo(argv[1],argv[2],argv[3],argv[4]);
   return 0;
 }
 
-void getinfo(char *infile,char *outfile,char *key)
+void getinfo(char *infile,char *outfile,char*outfile_coord,char *key)
 {
   int nt,nseek;
   int dt,shotnumber,k,olds,traceall;
   long POS=0;
   int *shot,ikey;
+  double  scalco=0;
   su tr;
   FILE* outfp;
   FILE* infp;
+  FILE* outcord;
   infp=fopen(infile,"r");
   outfp=fopen(outfile,"w");
+  outcord=fopen(outfile_coord,"w");
   if(! strcmp(key,"sx"))
     ikey=18;
   else if(! strcmp(key,"ep"))
@@ -56,7 +61,11 @@ void getinfo(char *infile,char *outfile,char *key)
   int maxntr=1;
   int starttrace=1;
   int sx,sy,xmin,xmax,ymin,ymax;
+  int sz,gx,gy,gz;
   int xminall,xmaxall,yminall,ymaxall;
+  // specify the sz and gz coordinate
+  sz=0;
+  gz=0;
   if(tr.gx<tr.sx){
     xmin=tr.gx;
     xmax=tr.sx;
@@ -75,6 +84,7 @@ void getinfo(char *infile,char *outfile,char *key)
   }
   sx=tr.sx;
   sy=tr.sy;
+  scalco = tr.scalco>0?tr.scalco:1.0/abs(tr.scalco); // normally this will not change 
   xminall=xmin;
   xmaxall=xmax;
   yminall=ymin;
@@ -82,12 +92,14 @@ void getinfo(char *infile,char *outfile,char *key)
   fprintf(outfp,"%s\n",info1);
   fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",0,0,0,0,0,0,0,0);
   fprintf(outfp,"%s\n",info2);
+  fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
   //读su文件
   do {
     POS+=nseek;//指针指向下一道道头位置
     fseek(infp,POS,0);//指针指向文件开始
     fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
     ntr++;//ntr：某炮的道数
+    fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
     if(*shot!=olds)//判断是否到了下一炮
       {
 	shotnumber++;//统计总炮数
@@ -148,6 +160,7 @@ void getinfo(char *infile,char *outfile,char *key)
   fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",shotnumber,maxntr,nt,dt,xminall,xmaxall,yminall,ymaxall);
   fclose(infp);
   fclose(outfp);
+  fclose(outcord);
 }
 
 long getfilesize(FILE *fp)
