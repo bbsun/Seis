@@ -5,28 +5,30 @@
 char info1[1024]="    CSP(SP)     NTR       NT        DT     XMINALL   XMAXALL   YMINALL   YMAXALL";
 char info2[1024]="        SP       NTR     BEGIN       END        SX       SY       XMIN      XMAX      YMIN      YMAX";
 long getfilesize(FILE *fp);
-void getinfo(char *infile,char *outfile,char* outfile2,char *key); 
+void getinfo(char *infile,char *outfile,char* outfile2,char* dir,char *key); 
 int  main( int argc, char *argv[])
 {
-  if(argc != 5){
+  if(argc != 6){
     printf(" \n  get_info -- statistics header information\n\n");
     printf("  Usage:\n\n  get_info  [infile] [infofile] [key] \n\n");
     printf("  Parameters: \n");
     printf("  infile  :  inputfile in SU format\n");
     printf("  infofile:  file to store statistics information\n");
     printf("  coodfile:  file to store the coordinates\n");
+    printf("  dir     :   working directory\n");
     printf("  key=fldr/ep/cdp/sx    keyword describing the gathers\n\n");
     return 0;
   }
   printf("input file is %s\n",argv[1]);
   printf("info file  is %s\n",argv[2]);
   printf("coord file is %s\n",argv[3]);
-  printf("keyword    is %s\n",argv[4]);
-  getinfo(argv[1],argv[2],argv[3],argv[4]);
+  printf("dir        is %s\n",argv[4]);
+  printf("keyword    is %s\n",argv[5]);
+  getinfo(argv[1],argv[2],argv[3],argv[4],argv[5]);
   return 0;
 }
 
-void getinfo(char *infile,char *outfile,char*outfile_coord,char *key)
+void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
 {
   int nt,nseek;
   int dt,shotnumber,k,olds,traceall;
@@ -56,6 +58,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char *key)
   nt=tr.ns;//nt:采样点数 tr.ns：采样点数
   olds=*shot;//olds:原先炮号
   nseek=nt*4+240;//nseek:一道的数据大小
+  char buf[nseek-240];
   traceall=getfilesize(infp)/nseek;
   int ntr=1;
   int maxntr=1;
@@ -92,17 +95,45 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char *key)
   fprintf(outfp,"%s\n",info1);
   fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",0,0,0,0,0,0,0,0);
   fprintf(outfp,"%s\n",info2);
-  fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
+  char filename[1024];
+  int ishot = 1;
+  FILE * CSGF=0;
+  sprintf(filename,"%s/CSG/CSG%d.dat",dir,ishot++);
+  CSGF=fopen(filename,"w");
+  int itt=1;
+  fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",tr.sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
+  int size_trace_data = nt*4;
+  fseek(infp,POS,0);//指针指向文件开始
+  fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
+  fread(buf,1,size_trace_data,infp);//readin trace data
+  fwrite(buf,1,size_trace_data,CSGF);//writeout trace data;
   //读su文件
   do {
     POS+=nseek;//指针指向下一道道头位置
     fseek(infp,POS,0);//指针指向文件开始
     fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
+    if(k<=traceall-1){
+    if(*shot==olds ){
+    fread(buf,1,size_trace_data,infp);//readin trace data
+    fwrite(buf,1,size_trace_data,CSGF);//writeout trace data;
+    }
+    else
+      {
+	fclose(CSGF);
+	char filename2[1024];
+	sprintf(filename2,"%s/CSG/CSG%d.dat",dir,ishot++);
+	CSGF=fopen(filename2,"w");
+	fread(buf,1,size_trace_data,infp);//readin trace data
+	fwrite(buf,1,size_trace_data,CSGF);//writeout trace data;
+      }
+    }
     ntr++;//ntr：某炮的道数
-    fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
+    itt = *shot!=olds?1:itt;
+    if(k<=traceall-1)
+    fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",tr.sx*scalco,sz*scalco,tr.gx*scalco,gz*scalco);
     if(*shot!=olds)//判断是否到了下一炮
       {
-	shotnumber++;//统计总炮数
+        shotnumber++;//统计总炮数
 	olds=*shot;
 	if(maxntr<ntr-1)
 	  maxntr=ntr-1;
@@ -147,9 +178,10 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char *key)
       yminall=ymin;
     if(ymaxall<ymax)
       ymaxall=ymax;
-    if(k%1000==1) fprintf(stderr,"trcae=%-10d      finished(%) %5.1f\n",k,100.*k/traceall);
+    if(k%1000==0) fprintf(stderr,"trcae=%-10d      finished(%) %5.1f\n",k,100.*k/traceall);
   }while(k<=traceall);//traceall是总道数，循环里面是读每一道的信息
   shotnumber++;
+  if(CSGF) fclose(CSGF);
   if(maxntr<ntr-1)
     maxntr=ntr-1;
   fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d\n",
