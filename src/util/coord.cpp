@@ -181,7 +181,7 @@ void Coords::printShotInfo(int BeginShot,int EndShot,char *CoordFileName,char* O
   float ** sc=0;
   cord->getSources(CoordFileName,ns,sc);
   cord->getReceivers(CoordFileName,ns,ng,gc);
-  ofstream *outfile;
+  ofstream *outfile=0;
   if(OutputFileName !=0)
     outfile=new ofstream(OutputFileName);
   if(OutputFileName!=0){

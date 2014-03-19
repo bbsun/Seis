@@ -4,19 +4,94 @@
 #include "hello.h"
 #include "file2.h"
 #include <string>
+#include <fstream>
 #include "../util/memory.h"
 #include "../util/arraymath.h"
 #include "../util/coord.h"
 using std::string;
 #define print std::cout 
 #define ed    std::endl;
+using std::ifstream;
 float * aaa;
 extern int ix;
 int ix = 1000;
 int a_out;
 // variable defined outside function has a default value of zero
+void cppstudy(int argc, char* argv[],char * envp[])
+{
+  string s2 = "pi = 3.1415926 ! parameters for the pi";
+  const string arg = "pi";
+  const string cmt = "!";
+  std::cout<<s2<<std::endl;
+  if(s2.find(cmt))
+    s2 =s2.erase(s2.find(cmt));
+  std::cout<<s2<<std::endl;
+  string s3=s2.substr(s2.find(arg)+arg.size());
+  string tmpxx;
+  std::cout<<s3<<std::endl;
+  auto indexX = s3.find_first_of("+-.0123456789");
+  while(! isspace(s3[indexX]) && indexX <s2.size()){
+    tmpxx+=s3[indexX];
+    indexX++;
+  }
+  float tmpf = stof(tmpxx);
+  std::cout<<tmpf<<std::endl;
+  const string s="keep out";
+  for(auto &c:s)
+    std::cout<<c<<std::endl;
+  print<<"argc "<<argc<<ed;
+  print<<"argv"<<argv[0]<<ed;
+  // string study
+  string tmpX;
+
+  getline(std::cin,tmpX);
+  decltype(tmpX.size()) index=0;
+  while(index < tmpX.size())
+    {
+       if(isalnum(tmpX[index]))
+	tmpX[index]='X';
+      index++;
+    }
+  std::cout<<tmpX<<std::endl;
+  for(char &c:tmpX)
+    {
+      if(isalnum(c))
+	c='X';
+    }
+  for(auto &c:tmpX)
+    {
+      if(isalnum(c))
+	c='X';
+    }
+  std::cout<<tmpX<<std::endl;
+  while(getline(std::cin,tmpX))
+    std::cout<<tmpX<<" "<<tmpX.size()<<std::endl;
+  
+  
+  // std::cout<<tmpX<<" its size is "<<tmpX.size()<<std::endl;
+  std::cout<<"finish"<<std::endl;
+  if(false){
+  string s1,s2;
+  std::cin >>s1>>s2;
+  std::cout<< s1 <<s2<<endl;
+  }
+  string testfile("/home/sunbb/sh/param.txt");
+  ifstream in(testfile);
+  string tmp;
+  std::cout<<"read again and again"<<std::endl;
+  while(in>>tmp)
+    std::cout<<tmp<<std::endl;
+  std::cout<<"read each line "<<std::endl;
+  in.close();
+  in.open(argv[1]);
+  while(getline(in,tmp))
+    std::cout<<tmp<<std::endl;
+  exit(0);
+}
 int main(int argc, char *argv[], char *envp[])
 {
+  if(true)
+    cppstudy(argc,argv,envp);
   char coordsFile[1024] = "/home/sunbb/sh/coords_ns256.txt";
   char outFile[1024]="/home/sunbb/sh/coords_ns256_out.txt";
   Coords::printShotInfo(1,10,coordsFile,outFile);
