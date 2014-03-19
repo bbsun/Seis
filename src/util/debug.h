@@ -1,6 +1,8 @@
 #ifndef DEGUG_H_H
 #include <iostream>
+#include <string>
 void check(bool eval, char * str);
+void error(std::string errinfo);
 template <typename T>
 void dump(char* name,T* a , int n)
 {

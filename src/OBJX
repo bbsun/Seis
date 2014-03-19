@@ -1,6 +1,7 @@
 OBJ = test/hello.o \
     test/file2.o  \
     util/debug.o \
-    util/coord.o
+    util/coord.o \
+    util/parser.o
 CXX = mpicxx
 CXXFLAGS = -std=c++0x -w

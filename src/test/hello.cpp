@@ -8,6 +8,7 @@
 #include "../util/memory.h"
 #include "../util/arraymath.h"
 #include "../util/coord.h"
+#include "../util/parser.h"
 using std::string;
 #define print std::cout 
 #define ed    std::endl;
@@ -19,6 +20,15 @@ int a_out;
 // variable defined outside function has a default value of zero
 void cppstudy(int argc, char* argv[],char * envp[])
 {
+  ParserFromFile pff("param2.txt");
+  string key="velfile",key1="logfile",key3="sadsad";
+  string velfile;
+  string def,def2("logfile.txt");
+  pff.getString(key,velfile,def,false);
+  std::cout<<key <<" "<< velfile <<std::endl;
+  pff.getString(key1,velfile,def2,true);
+  pff.getString(key1,velfile,def2,false);
+  pff.getString(key3,velfile,def2,false);
   string s2 = "pi = 3.1415926 ! parameters for the pi";
   const string arg = "pi";
   const string cmt = "!";
