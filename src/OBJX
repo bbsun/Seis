@@ -1,7 +1,9 @@
-OBJ = test/hello.o \
+OBJ = lsrtm/lsrtm.o \
     test/file2.o  \
     util/debug.o \
     util/coord.o \
-    util/parser.o
+    util/parser.o\
+    lsrtm/datastr.o \
+    lsrtm/inversion.o
 CXX = mpicxx
 CXXFLAGS = -std=c++0x -w

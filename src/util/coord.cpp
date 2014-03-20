@@ -9,6 +9,7 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::ofstream;
+using std::string;
 Coords::Coords()
 {
 }
@@ -18,14 +19,14 @@ Coords::Coords(const Coords & other)
 Coords::~Coords()
 {
 }
-void Coords::getSources(char * CoordFileName, int ns, float ** &sc)
+void Coords::getSources(string CoordFileName, int ns, float ** &sc)
 {
   if(sc==0)
     sc=MyAlloc<float>::alc(2,ns);
   char buffer[256];
   ifstream myfile(CoordFileName);
   if(!myfile){
-    cout << "Unalbe to open myfile";
+    cout << "Unalbe to open "<< CoordFileName <<endl;
     exit(1);
   }
   int cs=0;
@@ -54,14 +55,14 @@ void Coords::getSources(char * CoordFileName, int ns, float ** &sc)
     }
   myfile.close();
 }
-void Coords::getReceivers(char * CoordFileName, int ns, int * ng,float *** &gc)
+void Coords::getReceivers(string CoordFileName, int ns, int * ng,float *** &gc)
 {
   if(gc==0)
     gc=MyAlloc<float>::alc(max(ng,ns),2,ns);
   char buffer[256];
   ifstream myfile(CoordFileName);
   if(!myfile){
-    cout << "Unalbe to open myfile";
+    cout << "Unalbe to open "<<CoordFileName<<endl;
     exit(1);
   }
   int cs=0,ig=0;
@@ -94,14 +95,14 @@ void Coords::getReceivers(char * CoordFileName, int ns, int * ng,float *** &gc)
     }
   myfile.close();
 }
-void Coords::countReceivers(char * CoordFileName, int ns, int * &ng)
+void Coords::countReceivers(string CoordFileName, int ns, int * &ng)
 {
   if(ng==0)
     ng=MyAlloc<int>::alc(ns);
   
   ifstream myfile(CoordFileName);
   if(!myfile){
-    cout << "Unalbe to open myfile";
+    cout << "Unalbe to open "<< CoordFileName<<endl;
     exit(1);
   }
   int cs=0;int ig=0;
@@ -136,7 +137,7 @@ void Coords::countReceivers(char * CoordFileName, int ns, int * &ng)
     ng[cs]=ig-1;	
   myfile.close();
 }
-int Coords::countShots(char * CoordFileName)
+int Coords::countShots(string CoordFileName)
 {
   char buffer[256];
   ifstream myfile(CoordFileName);
@@ -169,9 +170,8 @@ int Coords::countShots(char * CoordFileName)
   myfile.close();
   return cs;
 }
-void Coords::printShotInfo(int BeginShot,int EndShot,char *CoordFileName,char* OutputFileName)
+void Coords::printShotInfo(int BeginShot,int EndShot,string CoordFileName, string OutputFileName)
 {
-  ifstream myfile(CoordFileName);
   Coords * cord = new Coords();
   int ns = cord->countShots(CoordFileName);
   cout << ns<<endl;
@@ -182,15 +182,15 @@ void Coords::printShotInfo(int BeginShot,int EndShot,char *CoordFileName,char* O
   cord->getSources(CoordFileName,ns,sc);
   cord->getReceivers(CoordFileName,ns,ng,gc);
   ofstream *outfile=0;
-  if(OutputFileName !=0)
+  if(OutputFileName!="" && OutputFileName!=" ")
     outfile=new ofstream(OutputFileName);
-  if(OutputFileName!=0){
+  if(OutputFileName!="" && OutputFileName!=" "){
     if(!outfile){
       cout << "Unalbe to open myfile";
       exit(1);
     }
   }
-  if(OutputFileName!=0){
+  if(OutputFileName!="" && OutputFileName!=" "){
     *outfile<<"Total Shot :"<<ns<<endl;
     for(int i=BeginShot-1;i<=EndShot-1;i++){
       *outfile<<"Shot Num: "<<i+1<<" x: "<<sc[i][0]<<" z: "<<sc[i][1]<<"num of traces"<<ng[i]<<endl;
@@ -221,4 +221,14 @@ void Coords::printShotInfo(int BeginShot,int EndShot,char *CoordFileName,char* O
   MyAlloc<float>::free(gc);
   MyAlloc<float>::free(sc);
   
+}
+void Coords::printShotInfo(int BeginShot, int EndShot, int ns, int ngmax, int * ng, float **sc, float ***gc)
+{
+  for(int i=BeginShot-1;i<=EndShot-1;i++){
+	cout<<"Shot Num: "<<i+1<<" x: "<<sc[i][0]<<" z: "<<sc[i][1]<<"num of traces"<<ng[i]<<endl;
+	for(int j=0;j<ng[i];j++)
+	  {
+	    cout<<"receiver Num: "<<j+1<<" x: "<<gc[i][0][j]<<" z: "<<gc[i][1][j]<<endl;
+	  }
+      }
 }

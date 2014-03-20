@@ -1,4 +1,5 @@
-#ifndef DEGUG_H_H
+#ifndef DEBUG_H_H
+#define DEBUG_H_H
 #include <iostream>
 #include <string>
 void check(bool eval, char * str);
