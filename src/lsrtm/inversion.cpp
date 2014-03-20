@@ -101,8 +101,6 @@ void Inversion::getConfig()
   
   int ns    = param.ns.val;
   int ngmax = param.ngmax.val; 
-  cout<<ns<<endl;
-  cout<<ngmax<<endl;
   
   MPI_Bcast(&ng[0],       ns,        MPI_INT,   0, MPI_COMM_WORLD); 
   MPI_Bcast(&sc[0][0],    ns*2,      MPI_FLOAT, 0, MPI_COMM_WORLD); 
