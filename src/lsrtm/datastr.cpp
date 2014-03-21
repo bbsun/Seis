@@ -88,6 +88,7 @@ void paramLSRTM::print()
   dz.print();
   dt.print();
   fr.print();
+  velfx.print();
   precsg.print();
   wdir.print();
   v0file.print();

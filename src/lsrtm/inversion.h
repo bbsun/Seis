@@ -6,9 +6,14 @@ class Inversion
 {
  public:
   Inversion(int rank,int nprocs);
+  ~Inversion();
   void readParamFile(std::string file);
   void getConfig();
-  ~Inversion();
+  void test();
+ private:
+  float ** getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is);
+  void swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add);
+  void swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj);
  private:
   int rank;
   int nprocs;

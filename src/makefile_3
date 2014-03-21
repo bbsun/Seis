@@ -1,0 +1,20 @@
+include OBJX
+run:$(OBJ)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+lsrtm/lsrtm.o: lsrtm/lsrtm.cpp /home/sunbb/sof/mpich2/include/mpi.h \
+ /home/sunbb/sof/mpich2/include/mpio.h /home/sunbb/sof/mpich2/include/mpi.h \
+ /home/sunbb/sof/mpich2/include/mpicxx.h lsrtm/../util/memory.h \
+ lsrtm/../util/arraymath.h lsrtm/../util/debug.h lsrtm/../util/coord.h \
+ lsrtm/../util/parser.h lsrtm/../util/../lsrtm/datastr.h lsrtm/inversion.h
+test/file2.o: test/file2.cpp test/file2.h
+util/debug.o: util/debug.cpp util/debug.h
+util/coord.o: util/coord.cpp util/coord.h util/memory.h util/arraymath.h util/debug.h
+util/parser.o: util/parser.cpp util/parser.h util/../lsrtm/datastr.h util/debug.h
+lsrtm/datastr.o: lsrtm/datastr.cpp lsrtm/datastr.h lsrtm/../util/memory.h \
+ lsrtm/../util/debug.h
+lsrtm/inversion.o: lsrtm/inversion.cpp /home/sunbb/sof/mpich2/include/mpi.h \
+ /home/sunbb/sof/mpich2/include/mpio.h /home/sunbb/sof/mpich2/include/mpi.h \
+ /home/sunbb/sof/mpich2/include/mpicxx.h lsrtm/inversion.h lsrtm/datastr.h \
+ lsrtm/../util/parser.h lsrtm/../util/coord.h lsrtm/../util/arraymath.h \
+ lsrtm/../util/debug.h lsrtm/../util/memory.h lsrtm/../util/io.h

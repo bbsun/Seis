@@ -58,6 +58,7 @@ class paramLSRTM
   paramInt   mask{paramInt("mask",0,DEFAULT_MASK,1)}, maxiter{paramInt("maxiter",0,DEFAULT_MAXITER,1)}, delay{paramInt("delay",0,0,1)};
   paramInt   lpad{paramInt("lpad",0,0,1)}, rpad{paramInt("rpad",0,0,1)};
   paramFloat dx{paramFloat("dx",0,0,0)}, dz{paramFloat("dz",0,0,0)}, dt{paramFloat("dt",0,0,0)}, fr{paramFloat("fr",0,0,0)};
+  paramFloat velfx{paramFloat("velfx",0,0,1)};
   paramString precsg{paramString("precsg","","",0)};
   paramString wdir{paramString("wdir","","",0)};
   paramString v0file{paramString("v0file","","",0)};

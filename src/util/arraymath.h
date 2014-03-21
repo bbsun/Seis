@@ -16,6 +16,43 @@
 #include "debug.h"
 #include <stdlib.h>
 #include <math.h>
+
+template <typename T>
+T min(T a, T b)
+{
+  return ( a < b ? a : b);
+}
+
+template <typename T>
+T min(T a, T b, T c)
+{
+  return min(min(a,b),c);
+}
+
+template <typename T>
+T min(T a, T b, T c, T d)
+{
+  return min(min(a,b,c),d);
+}
+
+template <typename T>
+T max(T a, T b)
+{
+  return (a>b? a: b);
+}
+
+template <typename T>
+T max(T a, T b, T c)
+{
+  return max(max(a,b),c);
+}
+
+template <typename T>
+T max(T a, T b, T c, T d)
+{
+  return max(max(a,b,c),d);
+}
+
 template <typename T>
 T min(T* in, int n)
 {
@@ -23,7 +60,7 @@ T min(T* in, int n)
   check(in!=0, ERROR_STRING);
   T minF = in[0];
   for(int i=1;i<n;i++)
-    minF = minF>in[i]?in[i]:maxF;
+    minF = minF>in[i]?in[i]:minF;
   return minF;
 }
 
@@ -35,7 +72,7 @@ T min(T** in, int n1, int n2)
   check(in!=0, ERROR_STRING);
   T minF = in[0][0];
   for(int i=1;i<n;i++)
-    minF = minF<in[0][i]?in[0][i]:maxF;
+    minF = minF<in[0][i]?in[0][i]:minF;
   return minF;
 }
 
@@ -47,7 +84,7 @@ T min(T*** in, int n1, int n2, int n3)
   check(in!=0, ERROR_STRING);
   T minF = in[0][0][0];
   for(int i=1;i<n;i++)
-    minF = minF<in[0][0][i]?in[0][0][i]:maxF;
+    minF = minF<in[0][0][i]?in[0][0][i]:minF;
   return minF;
 }
 
@@ -59,7 +96,7 @@ T min(T*** in, int n1, int n2, int n3, int n4)
   check(in!=0, ERROR_STRING);
   T minF = in[0][0][0][0];
   for(int i=1;i<n;i++)
-    minF = minF<in[0][0][0][i]?in[0][0][0][i]:maxF;
+    minF = minF<in[0][0][0][i]?in[0][0][0][i]:minF;
   return minF;
 }
 

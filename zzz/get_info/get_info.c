@@ -98,7 +98,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
   fprintf(outfp,"%10d%10d%10d%10d%10d%10d%10d%10d\n",0,0,0,0,0,0,0,0);
   fprintf(outfp,"%s\n",info2);
   char filename[1024];
-  int ishot = 1;
+  int ishot = 0;
   FILE * CSGF=0;
   sprintf(filename,"%s/CSG/CSG%d.dat",dir,ishot++);
   CSGF=fopen(filename,"w");
