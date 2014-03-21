@@ -69,4 +69,6 @@ void write(std::string filename, int n1, int n2, int n3, int n4, T****data)
   write(filename, n1*n2*n3*n4, &data[0][0][0][0]);
 }
 
+void writesu(std::string filename, int n1,          float * data);
+void writesu(std::string filename, int n1, int n2,  float ** data);
 #endif

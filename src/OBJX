@@ -3,6 +3,7 @@ OBJ = lsrtm/lsrtm.o \
     util/debug.o \
     util/coord.o \
     util/parser.o\
+    util/io.o \
     lsrtm/datastr.o \
     lsrtm/inversion.o
 CXX = mpicxx

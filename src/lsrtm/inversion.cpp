@@ -113,21 +113,7 @@ void Inversion::getConfig()
       Coords::printShotInfo(ns-10,ns,ns,ngmax,this->ng,this->sc,this->gc);
     }
 }
-/**
- * Return the velocity model for finite difference calcuation
- * returned velocity model velsub will be used in calculation
- * the returned parameters velfxsub and nxsub is useful for
- * insert the record into the calculation model.
- *@param [out] velfxsub       first sample of the output in x-axis
- *@param [out] nzsub          depth sample number of the output
- *@param [out] nxsub          distance sample number of the output
- *@param [in ] vel            velocity model
- *@param [in ] nz             depth sample number of the input
- *@param [in ] nx             distance sample number of the input
- *@param [in ] velfx          first sample of the input in x-axis
- *@param [in ] is             shot number index, in range [0, ns-1]
- *@return                     sub velocty model for calculation
- */
+
 float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is)
 {
   int lpad    = param.lpad.val;
@@ -175,20 +161,7 @@ float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel
     }
   return velsub;
 }
-/**
- * cast the grid for calculation to the grid for inversion.
- * swap the two model, the entrance of d will not be zero if its 
- * coordinate is within the range of m.
- *@param [in]  m                    grid for calculation
- *@param [out] d                    grid for inversion
- *@param [in]  mfx                  first sample of m in x-axis
- *@param [in]  dfx                  first sample of d in x-axis
- *@param [in]  nzm                  depth sample number of m
- *@param [in]  nxm                  distance sample number of m
- *@param [in]  nzd                  depth sample number of d
- *@param [in]  nxd                  distance sample number of d
- *@param [in]  add                  clear d or not
- */
+
 void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add)
 {
   check(nzm==nzd,"error: SwapModel in inversion.cpp nzm and nzd must be the same. ");
@@ -208,19 +181,7 @@ void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,
 	}
     }
 }
-/**
- * get the record for calcualtion or push back the calculated record to CSG
- * adjoint = false, CSG --> rec
- * adojint = true , rec --> CSG
- *@param [in] CSG                   commmon shot gather 
- *@param [in] is                    shot index
- *@param [in] ng                    number of gathers of CSG
- *@param [in] nt                    number of sample 
- *@param [in] rec                   rec for calculation 
- *@param [in] fx                    first sample of rec in x-axis
- *@param [in] nx                    number of gather for rec
- *@param [in] adj                   adjoint or not 
- */
+
 void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj)
 {
   adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
@@ -237,6 +198,36 @@ void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, flo
 	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
 	}
     }
+}
+string Inversion::obtainCSGName  (int is)
+{
+  char name[256];
+  sprintf(name,"%s%d.dat",param.precsg.val,is);
+  return string(name);
+}
+string Inversion::obtainBornName (int is)
+{
+  char name[256];
+  sprintf(name,"%sBORN%d.dat",param.wdir.val,is);
+  return string(name);
+}
+string Inversion::obtianImageName(int is)
+{
+  char name[256];
+  sprintf(name,"%sIMAGE%d.dat",param.wdir.val,is);
+  return string(name);
+}
+string Inversion::obtainNameDat(string dir,string filename,int index)
+{
+  char name[256];
+  sprintf(name,"%s%s%d.dat",dir,filename,index);
+  return string(name);
+}
+string Inversion::obtainNameSu(string dir,string filename,int index)
+{
+  char name[256];
+  sprintf(name,"%s%s%d.su",dir,filename,index);
+  return string(name);
 }
 void Inversion::test()
 {
@@ -258,11 +249,10 @@ void Inversion::test()
       int  nxsub;
       float ** velsub = getVel(velfxsub, nzsub, nxsub, vel,nz, nx, velfx, is);
       float ** recsub = MyAlloc<float>::alc(nt,nxsub);
-      char tmpf[256];
-      sprintf(tmpf,"%svelsub%d.dat",wdir,is);
-      write(string(tmpf),nzsub,nxsub,velsub);
-      cout<<"subvel for shot :" << is << " nzsub: "<<nzsub<<" nxsub : "<<nxsub<<" velfx : "<<velfxsub<<endl;
-      char tmpf1[256];
+      string tmp = obtainNameSu(param.wdir.val,"velsub",is);
+      writesu(tmp,nzsub,nxsub,velsub);
+       cout<<"subvel for shot :" << is << " nzsub: "<<nzsub<<" nxsub : "<<nxsub<<" velfx : "<<velfxsub<<endl;
+       /*char tmpf1[256];
       char tmpf2[256];
       sprintf(tmpf1,"%s%d.dat",param.precsg.val,is);
       sprintf(tmpf2,"%srecsub%d.dat",wdir,is);
@@ -281,7 +271,7 @@ void Inversion::test()
       write(string(tmpf4),nt,ng[is],CSG);
       
       MyAlloc<float>::free(velsub);
-      MyAlloc<float>::free(recsub);
+      MyAlloc<float>::free(recsub);*/
     }
   MyAlloc<float>::free(vel);
   MyAlloc<float>::free(grid);
