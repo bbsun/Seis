@@ -252,7 +252,7 @@ void Inversion::test()
       float ** velsub = getVel(velfxsub, nzsub, nxsub, vel,nz, nx, velfx, is);
       float ** recsub = MyAlloc<float>::alc(nt,nxsub);
       string tmp = obtainNameSu(param.wdir.val,"velsub",is);
-      writesu(tmp,nzsub,nxsub,velsub);
+      writeSu(tmp,nzsub,nxsub,velsub);
        cout<<"subvel for shot :" << is << " nzsub: "<<nzsub<<" nxsub : "<<nxsub<<" velfx : "<<velfxsub<<endl;
        /*char tmpf1[256];
       char tmpf2[256];

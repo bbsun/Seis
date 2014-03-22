@@ -10,6 +10,7 @@
 #include "../util/wavelet.h"
 #include "../util/global.h"
 #include "../util/fd.h"
+#include "../util/io.h"
 #include "datastr.h"
 #include "inversion.h"
 using std::string;
@@ -19,6 +20,8 @@ using std::endl;
 void test();
 int main(int argc, char *argv[], char *envp[])
 {
+  test();
+  return;
   int rank;
   int nprocs;
   //--initial MPI
@@ -60,18 +63,20 @@ void test()
   float **  v=MyAlloc<float>::alc(nz,nx); 
   float **dv =MyAlloc<float>::alc(nz,nx);
   float    fr = 20.0f;
-  int delay = 1.0f/fr/dt;
+  int delay = 100;
   int delaycal = 100;
   int NT = nt + delaycal;
   int numdelay = delay + delaycal;
   float * wav = rickerWavelet(dt,fr,numdelay,NT);
   OMP_CORE = 4;
-  opern(v,VALUE,nz,nx,3000);
+  opern(v,VALUE,nz,nx,3000.0f);
   for(int ix=0;  ix<nx;ix++)
   for(int iz=128;iz<nz;iz++)
     {
-      v[ix][iz]=4000;
+      v[ix][iz]=4000.0f;
     }
-  
+  float **rec=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
+  writeSu("rec.su",nt,nx,rec);
+  MyAlloc<float>::free(rec);
   // initi
 }

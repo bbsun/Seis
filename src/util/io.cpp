@@ -3,7 +3,7 @@
 #include <string>
 using std::string  ;
 using std::ofstream;
-void writesu(string filename,int n1,         float * data)
+void writeSu(string filename,int n1,         float * data)
 {
   suheader header;
   header.d1 = 1;
@@ -28,7 +28,7 @@ void writesu(string filename,int n1,         float * data)
   
   fw.close();
 }
-void writesu(string filename,int n1,int n2,  float ** data)
+void writeSu(string filename,int n1,int n2,  float ** data)
 {
   suheader header;
   header.d1 = 1;
