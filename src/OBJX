@@ -4,7 +4,11 @@ OBJ = lsrtm/lsrtm.o \
     util/coord.o \
     util/parser.o\
     util/io.o \
+    util/fd.o \
+    util/InitInversion.o\
+    util/global.o \
+    util/wavelet.o \
     lsrtm/datastr.o \
-    lsrtm/inversion.o
+    lsrtm/inversion.o  
 CXX = mpicxx
-CXXFLAGS = -std=c++0x -w
+CXXFLAGS = -std=c++0x -w -openmp

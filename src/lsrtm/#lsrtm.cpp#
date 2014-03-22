@@ -72,6 +72,7 @@ void test()
     {
       v[ix][iz]=4000;
     }
-  
+  float **rec=modeling( dt,  dx,  dz, nt, delay, nx, nz, pml, sx,  sz,  wav, v );
+  write()
   // initi
 }

@@ -27,13 +27,15 @@ void Inversion::readParamFile(string file)
 {
     ParserFromFile pff(file);
     // int parameters
-    pff.getInt   ( param.ns        );
+    pff.getInt   ( param.nthread   );
+    pff.getInt   ( param.ns        ); 
     pff.getInt   ( param.ngmax     );
     pff.getInt   ( param.nx        );
     pff.getInt   ( param.nz        );
     pff.getInt   ( param.nt        );
     pff.getInt   ( param.npml      );
     pff.getInt   ( param.delay     );
+    pff.getInt   ( param.delaycal  );
     pff.getInt   ( param.mask      );
     pff.getInt   ( param.maxiter   );
     pff.getInt   ( param.lpad      );

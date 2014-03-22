@@ -7,6 +7,7 @@ void writesu(string filename,int n1,         float * data)
 {
   suheader header;
   header.d1 = 1;
+  header.d2 = 1;
   header.f1 = 0;
   header.ns = n1;
   header.ep = 1;
@@ -14,6 +15,8 @@ void writesu(string filename,int n1,         float * data)
   header.dt = 1000000;
   header.tracl = 0;
   header.tracr = 0;
+  header.f1    = 0;
+  header.f2    = 0;
   std::ofstream fw(filename, std::ios::binary );
   
   header.tracl ++;
@@ -29,6 +32,7 @@ void writesu(string filename,int n1,int n2,  float ** data)
 {
   suheader header;
   header.d1 = 1;
+  header.d2 = 1;
   header.f1 = 0;
   header.ns = n1;
   header.ep = 1;
@@ -36,6 +40,8 @@ void writesu(string filename,int n1,int n2,  float ** data)
   header.dt = 1000000;
   header.tracl = 0;
   header.tracr = 0;
+  header.f1    = 0;
+  header.f2    = 0;
   std::ofstream fw(filename, std::ios::binary );
   for(int i=0; i<n2;i++)
     {

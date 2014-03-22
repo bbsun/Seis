@@ -53,9 +53,10 @@ class paramLSRTM
  public:
   void print();
  public:
+  paramInt   nthread{paramInt("nthread",0,1,1)};
   paramInt   ns{paramInt("ns",0,0,0)},   ngmax{paramInt("ngmax",0,0,0)};
   paramInt   nx{paramInt("nx",0,0,0)},   nz{paramInt("nz",0,0,0)},   nt{paramInt("nt",0,0,0)},   npml{paramInt("npml",0,DEFAULT_NPML,1)} ;
-  paramInt   mask{paramInt("mask",0,DEFAULT_MASK,1)}, maxiter{paramInt("maxiter",0,DEFAULT_MAXITER,1)}, delay{paramInt("delay",0,0,1)};
+  paramInt   mask{paramInt("mask",0,DEFAULT_MASK,1)}, maxiter{paramInt("maxiter",0,DEFAULT_MAXITER,1)}, delay{paramInt("delay",0,0,1)}, delaycal{paramInt("delaycal",0,0,1)};
   paramInt   lpad{paramInt("lpad",0,0,1)}, rpad{paramInt("rpad",0,0,1)};
   paramFloat dx{paramFloat("dx",0,0,0)}, dz{paramFloat("dz",0,0,0)}, dt{paramFloat("dt",0,0,0)}, fr{paramFloat("fr",0,0,0)};
   paramFloat velfx{paramFloat("velfx",0,0,1)};
