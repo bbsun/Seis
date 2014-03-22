@@ -75,8 +75,12 @@ void test()
     {
       v[ix][iz]=4000.0f;
     }
-  float **rec=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
-  writeSu("rec.su",nt,nx,rec);
-  MyAlloc<float>::free(rec);
+  float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
+  writeSu("rec1.su",nt,rec1[sx]);
+  corWavelet2D(wav, dt,NT);
+  float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
+  writeSu("rec2.su",nt,rec2[sx]);
+  MyAlloc<float>::free(rec1);
+  MyAlloc<float>::free(rec2);
   // initi
 }
