@@ -100,13 +100,13 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
   char filename[1024];
   int ishot = 0;
   FILE * CSGF=0;
-  sprintf(filename,"%s/CSG/CSG%d.dat",dir,ishot++);
+  sprintf(filename,"%sCSG%d.dat",dir,ishot++);
   CSGF=fopen(filename,"w");
   int itt=1;
   sxf = tr.sx * scalco; // set sx
   szf = 0.0f;            // set sz
   gzf = 0.0f;
-  fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sxf,szf,tr.gx*scalco,gzf);
+  fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
   int size_trace_data = nt*4;
   fseek(infp,POS,0);//指针指向文件开始
   fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
@@ -127,7 +127,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
       {
 	fclose(CSGF);
 	char filename2[1024];
-	sprintf(filename2,"%s/CSG/CSG%d.dat",dir,ishot++);
+	sprintf(filename2,"%sCSG%d.dat",dir,ishot++);
 	CSGF=fopen(filename2,"w");
 	fread(buf,1,size_trace_data,infp);//readin trace data
 	fwrite(buf,1,size_trace_data,CSGF);//writeout trace data;
@@ -138,7 +138,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
 
     if(k<=traceall-1)
       if((*shot)==olds)
-	fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sxf,szf,tr.gx*scalco,gzf);
+	fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
     if(*shot!=olds)//判断是否到了下一炮
       {
         shotnumber++;//统计总炮数
@@ -146,7 +146,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
 	sxf = (tr.sx) * scalco; // set sx
 	szf = 0.0;          //   set sz
 	gzf = 0.0;
-	fprintf(outcord,"%12.5f %12.5f %12.5f %12.5f\n",sxf,szf,tr.gx*scalco,gzf);
+	fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
 	if(maxntr<ntr-1)
 	  maxntr=ntr-1;
 	//输出第一炮的信息

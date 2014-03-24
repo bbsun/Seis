@@ -27,13 +27,15 @@ void Inversion::readParamFile(string file)
 {
     ParserFromFile pff(file);
     // int parameters
-    pff.getInt   ( param.ns        );
+    pff.getInt   ( param.nthread   );
+    pff.getInt   ( param.ns        ); 
     pff.getInt   ( param.ngmax     );
     pff.getInt   ( param.nx        );
     pff.getInt   ( param.nz        );
     pff.getInt   ( param.nt        );
     pff.getInt   ( param.npml      );
     pff.getInt   ( param.delay     );
+    pff.getInt   ( param.delaycal  );
     pff.getInt   ( param.mask      );
     pff.getInt   ( param.maxiter   );
     pff.getInt   ( param.lpad      );
@@ -250,7 +252,7 @@ void Inversion::test()
       float ** velsub = getVel(velfxsub, nzsub, nxsub, vel,nz, nx, velfx, is);
       float ** recsub = MyAlloc<float>::alc(nt,nxsub);
       string tmp = obtainNameSu(param.wdir.val,"velsub",is);
-      writesu(tmp,nzsub,nxsub,velsub);
+      writeSu(tmp,nzsub,nxsub,velsub);
        cout<<"subvel for shot :" << is << " nzsub: "<<nzsub<<" nxsub : "<<nxsub<<" velfx : "<<velfxsub<<endl;
        /*char tmpf1[256];
       char tmpf2[256];

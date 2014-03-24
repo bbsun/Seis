@@ -1,0 +1,4 @@
+#ifndef WAVELET_H
+#define WAVELET_H
+float * rickerWavelet(float dt, float fr, float delay, int nt);
+#endif

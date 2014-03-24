@@ -1,11 +1,13 @@
 #include <iostream>
 #include "datastr.h"
 #include <stdio.h>
+#include <iomanip>
 #include "../util/memory.h"
 #include "../util/debug.h"
 using std::cout;
 using std::endl;
 using std::string;
+using std::setw;
 paramString::paramString(const paramString & other)
 {
   this->key = other.key;
@@ -23,10 +25,8 @@ paramString::paramString(string key, string val, string def, bool opt)
 }
 void paramString::print()
 {
-  cout<<key <<endl;
-  cout<<"    val "<< val <<endl;
-  cout<<"    def "<< def <<endl;
-  cout<<"    opt "<< opt << endl;
+  cout<<setw(10)  << key << ": ";
+  cout<< val <<endl;
 }
 paramInt::paramInt(const paramInt & other)
 {
@@ -45,10 +45,8 @@ paramInt::paramInt(string key, int val, int def, bool opt)
 }
 void paramInt::print()
 {
-  cout<< key <<endl;
-  cout<<"    val "<< val <<endl;
-  cout<<"    def "<< def <<endl;
-  cout<<"    opt "<< opt << endl;
+  cout<<setw(10)  << key << ": ";
+  cout<< val <<endl;
 }
 paramFloat::paramFloat(const paramFloat & other)
 {
@@ -68,22 +66,24 @@ paramFloat::paramFloat(string key, float val, float def, bool opt)
 
 void paramFloat::print()
 {
-  cout<< key <<endl;
-  cout<<"    val "<< val <<endl;
-  cout<<"    def "<< def <<endl;
-  cout<<"    opt "<< opt << endl;
+  cout<<setw(10)  << key << ": ";
+  cout<< val <<endl;
 }
 void paramLSRTM::print()
 {
+  nthread.print();
   ns.print();
   ngmax.print();
   nx.print();
   nz.print();
   nt.print();
+  lpad.print();
+  rpad.print();
   npml.print();
   mask.print();
   maxiter.print();
   delay.print();
+  delaycal.print();
   dx.print();
   dz.print();
   dt.print();

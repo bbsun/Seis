@@ -15,6 +15,7 @@ ParserFromFile::ParserFromFile(string file )
 }
 void ParserFromFile::getFloat(string key, float & val,float def,bool opt)
 {
+  key = key + " ";
   bool findKey   = false;
   const string cmt="!";
   string file = _file;
@@ -61,6 +62,7 @@ void ParserFromFile::getFloat(string key, float & val,float def,bool opt)
   }
 void ParserFromFile::getInt(string key, int & val,int def,bool opt)
 {
+  key = key + " ";
   bool findKey   = false;
   const string cmt="!";
   string file = _file;
@@ -107,6 +109,7 @@ void ParserFromFile::getInt(string key, int & val,int def,bool opt)
   }
 void ParserFromFile::getString(string key, string & val,string def,bool opt)
 {
+  key = key + " ";
   bool findKey   = false;
   const string cmt="!";
   string file = _file;

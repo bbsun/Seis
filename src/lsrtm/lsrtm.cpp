@@ -7,6 +7,10 @@
 #include "../util/arraymath.h"
 #include "../util/coord.h"
 #include "../util/parser.h"
+#include "../util/wavelet.h"
+#include "../util/global.h"
+#include "../util/fd.h"
+#include "../util/io.h"
 #include "datastr.h"
 #include "inversion.h"
 using std::string;
@@ -17,6 +21,7 @@ void test();
 int main(int argc, char *argv[], char *envp[])
 {
   test();
+  return;
   int rank;
   int nprocs;
   //--initial MPI
@@ -40,4 +45,47 @@ void test()
   float maxf = max(a,b,c,d);
   cout<<minf<<" min of "<< a << b << c << d<<endl;
   cout<<maxf<<" max of "<< a << b << c << d<<endl;
+  if(true)
+    {
+      cout<<" test of modeling " << endl;
+    }
+  
+  int nt = 3500*2*2; // 14000
+  int nx=150;
+  int nz = 400;
+  int sx = 75;
+  int sz = 0;
+  int pml = 30;
+  float dt = 0.0003f;
+  float dx = 7.62f*3.5567;
+  float dz = 7.62f*2;
+  float ** v0=MyAlloc<float>::alc(nz,nx);
+  float **  v=MyAlloc<float>::alc(nz,nx); 
+  float **dv =MyAlloc<float>::alc(nz,nx);
+  float    fr = 20.0f;
+  int delay = 100;
+  int delaycal = 100;
+  int NT = nt + delaycal;
+  int numdelay = delay + delaycal;
+  float * wav = rickerWavelet(dt,fr,numdelay,NT);
+  OMP_CORE = 4;
+  opern(v,VALUE,nz,nx,3000.0f);
+  opern(v0,VALUE,nz,nx,3000.0f);
+  for(int ix=0;  ix<nx;ix++)
+  for(int iz=nz/2;iz<nz;iz++)
+    {
+      v[ix][iz]=4000.0f;
+    }
+  float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
+  float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v0 );
+  opern(rec1,rec1,rec4,SUB,nt,nx);
+  writeSu("rec1.su",nt,rec1[sx]);
+  corWavelet2D(wav, dt,NT);
+  float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
+  float **rec5=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v0 );
+  opern(rec2,rec2,rec5,SUB,nt,nx);
+  writeSu("rec2.su",nt,rec2[sx]);
+  MyAlloc<float>::free(rec1);
+  MyAlloc<float>::free(rec2);
+  // initi
 }
