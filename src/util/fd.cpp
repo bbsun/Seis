@@ -11,7 +11,7 @@ using std::cout;
 using std::endl;
 extern int OMP_CORE;
 
-float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, float * wav, float **vel )
+float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel )
 {
   int nzpml = nz + 2*pml;
   int nxpml = nx + 2*pml;
@@ -19,7 +19,7 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   int sxpml = sx + pml;
   float invdx2 = 1.0f/(dx*dx);
   float invdz2 = 1.0f/(dz*dz);
-  
+  int *  izpml  = MyAlloc<int> ::alc(nx);
   float ** w2d    = setAbs(nz,nx,pml);
   float ** velpml = setVel(vel,nz,nx,pml);
   float ** vt2    = MyAlloc<float>::alc(nzpml,nxpml); 
@@ -30,7 +30,6 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   float ** u21    = MyAlloc<float>::alc(nzpml,nxpml);
   float ** vvzz   = MyAlloc<float>::alc(nzpml,nxpml);
   float ** vvxx   = MyAlloc<float>::alc(nzpml,nxpml);
-  
   opern(vt2,velpml, velpml, COPY, nzpml, nxpml);
   opern(vt2,vt2   ,    vt2, SCAL, nzpml, nxpml, dt);
   opern(vt2,vt2   ,    vt2,  MUL, nzpml, nxpml);
@@ -38,6 +37,8 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   opern(vvxx,vt2,vt2,COPY,nzpml,nxpml);
   opern(vvzz,vvzz,vvzz,SCAL,nzpml,nxpml,invdz2);
   opern(vvxx,vvxx,vvxx,SCAL,nzpml,nxpml,invdx2);
+  for(int ix =0 ; ix < nx ; ix++)
+    izpml[ix] += pml;
   int NT = nt + ndel;
   for(int it=0;it<NT;it++)
     {
@@ -55,15 +56,17 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
       
       itp = it - ndel;
       if(itp >=0)
-      for(int ix=0;ix<nx;ix++)
-	rec[ix][itp]       = u2[ix+pml][szpml];
-      
+	for(int ix=0;ix<nx;ix++){
+	  int iz          = izpml[ix];
+	  rec[ix][itp]    = u2[ix+pml][iz];
+	}
       float ** tp = u0;
       u0 = u1;
       u1 = u2;
       u2 = tp;
     }	
   cout<<"Forwarding Modeling Finished"<<endl;
+  MyAlloc<int>  ::free(izpml);
   MyAlloc<float>::free(u0);
   MyAlloc<float>::free(u1);
   MyAlloc<float>::free(u2);
@@ -75,11 +78,11 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   MyAlloc<float>::free(vt2);
   return rec;
 }
-float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, float * wav, float **vel,float ** dv )
+float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** dv )
 {
 
 }
-float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, float * wav, float **vel,float ** rec)
+float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec)
 {
 
 }

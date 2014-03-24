@@ -26,7 +26,8 @@ class Inversion
    *@param [in ] is             shot number index, in range [0, ns-1]
    *@return                     sub velocty model for calculation
    */
-  float ** getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is);
+  float ** getVel (float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is);
+  int   *  getIgz ( float velfx, int nx ,int is);
   /**
    * cast the grid for calculation to the grid for inversion.
    * swap the two model, the entrance of d will not be zero if its 

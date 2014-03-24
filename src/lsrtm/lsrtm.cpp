@@ -59,6 +59,7 @@ void test()
   float dt = 0.0003f;
   float dx = 7.62f*3.5567;
   float dz = 7.62f*2;
+  int * igz = MyAlloc<int> :: alc(nx);
   float ** v0=MyAlloc<float>::alc(nz,nx);
   float **  v=MyAlloc<float>::alc(nz,nx); 
   float **dv =MyAlloc<float>::alc(nz,nx);
@@ -69,6 +70,7 @@ void test()
   int numdelay = delay + delaycal;
   float * wav = rickerWavelet(dt,fr,numdelay,NT);
   OMP_CORE = 4;
+  opern(igz,VALUE,nx,6);
   opern(v,VALUE,nz,nx,3000.0f);
   opern(v0,VALUE,nz,nx,3000.0f);
   for(int ix=0;  ix<nx;ix++)
@@ -76,13 +78,13 @@ void test()
     {
       v[ix][iz]=4000.0f;
     }
-  float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
-  float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v0 );
+  float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
+  float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec1,rec1,rec4,SUB,nt,nx);
   writeSu("rec1.su",nt,rec1[sx]);
   corWavelet2D(wav, dt,NT);
-  float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v );
-  float **rec5=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  wav, v0 );
+  float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
+  float **rec5=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec2,rec2,rec5,SUB,nt,nx);
   writeSu("rec2.su",nt,rec2[sx]);
   MyAlloc<float>::free(rec1);

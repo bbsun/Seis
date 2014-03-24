@@ -164,6 +164,31 @@ float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel
   return velsub;
 }
 
+int*  Inversion::getIgz ( float velfx, int nx ,int is)
+{
+  int * igz = MyAlloc<int>::alc(nx);
+  
+  float dx = param.dx.val;
+  float dz = param.dz.val;
+  float x_min = velfx;
+  float x_max = velfx + (nx -1 ) * dx ;
+  int NZ = param.nz.val;
+  for( int ix = 0; ix < nx ; ix++ )
+      igz[ix] = 3;
+  
+  for( int ig = 0; ig < ng[is]; ig++){
+    float x = gc[is][0][ig];
+    float z = gc[is][1][ig];
+    if( x>= x_min && x<= x_max){
+      int xloc = (x - x_min)/dx;
+      check(xloc>=0 && xloc<nx,"error: getIn in inversion.cpp xloc must be within range [0,nx)");
+      int zloc = (z - 0.0)  /dz;
+      igz[xloc] = zloc;
+      check(zloc>=0 && zloc<NZ,"error: getIn in inversion.cpp zloc musg be within range [0,NZ)");
+    }
+  }
+  return igz;
+}
 void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add)
 {
   check(nzm==nzd,"error: SwapModel in inversion.cpp nzm and nzd must be the same. ");
@@ -183,7 +208,6 @@ void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,
 	}
     }
 }
-
 void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj)
 {
   adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
