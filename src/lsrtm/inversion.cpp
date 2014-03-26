@@ -181,10 +181,10 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
     float z = gc[is][1][ig];
     if( x>= x_min && x<= x_max){
       int xloc = (x - x_min)/dx;
-      check(xloc>=0 && xloc<nx,"error: getIn in inversion.cpp xloc must be within range [0,nx)");
       int zloc = (z - 0.0)  /dz;
-      igz[xloc] = zloc;
+      check(xloc>=0 && xloc<nx,"error: getIn in inversion.cpp xloc must be within range [0,nx)");
       check(zloc>=0 && zloc<NZ,"error: getIn in inversion.cpp zloc musg be within range [0,NZ)");
+      igz[xloc] = zloc;
     }
   }
   return igz;
