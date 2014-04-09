@@ -9,9 +9,10 @@ OBJ = lsrtm/lsrtm.o \
     util/global.o \
     util/wavelet.o \
     filter/fft.o \
+    filter/dct.o \
     lsrtm/datastr.o \
     lsrtm/inversion.o  
 CXX = mpicxx
 CXXFLAGS = -std=c++0x -w -openmp
 FFTW = /home/sunbb/sof/FFTW_DIR
-LDFLAGS= -L$(FFTW)/lib -lfftw3
+LDFLAGS= -L$(FFTW)/lib -lfftw3 -lfftw3f

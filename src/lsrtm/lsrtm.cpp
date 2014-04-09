@@ -13,6 +13,7 @@
 #include "../util/io.h"
 #include "datastr.h"
 #include "inversion.h"
+#include "../filter/dct.h"
 using std::string;
 using std::ifstream;
 using std::cout;
@@ -21,7 +22,8 @@ void test();
 void sigsbee();
 int main(int argc, char *argv[], char *envp[])
 {
-  sigsbee();
+  test();
+  //sigsbee();
   //test();
   return;
   int rank;
@@ -42,6 +44,17 @@ int main(int argc, char *argv[], char *envp[])
 }
 void test()
 {
+  cout<<"test of the DCT and IDCT"<<endl;
+  float * signal=MyAlloc<float>::alc(6);
+  for(int i=0;i<6;i++)
+    signal[i] = 5+i;
+  dump("s",signal,6);
+  DCT dct(6,FFTW_ESTIMATE);
+  dct.apply(signal,signal,1);
+  dump("sf",signal,6);
+  dct.apply(signal,signal,-1);
+  dump("sfi",signal,6);
+  exit(0);
   float a=2.0; float b=3.0; float c = 4.0; float d= 5.0;
   float minf = min(a,b,c,d);
   float maxf = max(a,b,c,d);
