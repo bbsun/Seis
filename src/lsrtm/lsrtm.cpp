@@ -14,6 +14,7 @@
 #include "datastr.h"
 #include "inversion.h"
 #include "../filter/dct.h"
+#include "../filter/smooth.h"
 using std::string;
 using std::ifstream;
 using std::cout;
@@ -44,6 +45,7 @@ int main(int argc, char *argv[], char *envp[])
 }
 void test()
 {
+  if(false){
   cout<<"test of the DCT and IDCT"<<endl;
   float * signal=MyAlloc<float>::alc(7);
   for(int i=0;i<7;i++)
@@ -64,7 +66,7 @@ void test()
     {
       cout<<" test of modeling " << endl;
     }
-  
+  }
   int nt = 3500*2*2*2; // 14000
   int nx=150;
   int nz = 400;
@@ -84,32 +86,47 @@ void test()
   int NT = nt + delaycal;
   int numdelay = delay + delaycal;
   float * wav = rickerWavelet(dt,fr,numdelay,NT);
-  OMP_CORE = 4;
+  OMP_CORE = 10;
   opern(igz,VALUE,nx,6);
-  opern(v,VALUE,nz,nx,3000.0f);
-  opern(v0,VALUE,nz,nx,3000.0f);
+  opern(v,VALUE,nz,nx,4500.0f);
+  opern(v0,VALUE,nz,nx,4000.0f);
   for(int ix=0;  ix<nx;ix++)
-  for(int iz=nz/2;iz<nz;iz++)
+  for(int iz=0;iz<nz/2;iz++)
     {
       v[ix][iz]=4000.0f;
     }
-  for(int ix=0;ix<nx;ix++)
+  for(int ix=0;  ix<nx;ix++)
+  for(int iz=nz/2;iz<nz;iz++)
+    {
+      dv[ix][iz]=1000.0f;
+    }
+  /*for(int ix=0;ix<nx;ix++)
     for(int iz=nz*2/3;iz<nz;iz++)
       {
 	v[ix][iz]=4500.0f;
-      }
+	}*/
   float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
   float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec1,rec1,rec4,SUB,nt,nx);
-  writeSu("rec.su",nt,nx,rec1);
-  writeSu("rec1.su",nt,rec1[sx]);
+  write("rec.bin",nt,nx,rec1);
+  //writeSu("rec.su",nt,nx,rec1);
+  //writeSu("rec1.su",nt,rec1[sx]);
+  Smooth::smooth2d1(v,v0,nz,nx,10);
+  opern(dv,v,v0,SUB,nz,nx);
+  writeSu("v0.su",nz,nx,v0);
+  writeSu("v.su",nz,nx,v);
+  writeSu("dv.su",nz,nx,dv);
+  float ** born = forward ( dt, dx,  dz,  nt, delaycal, nx, nz, pml, sx, sz, igz, wav, v0, dv );
+  write("born.bin",nt,nx,born);
+  writeSu("born.su",nt,nx,born);
+  exit(0);
   corWavelet2D(wav, dt,NT);
   float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
   float **rec5=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec2,rec2,rec5,SUB,nt,nx);
   writeSu("rec2.su",nt,rec2[sx]);
-  MyAlloc<float>::free(rec1);
-  MyAlloc<float>::free(rec2);
+  // MyAlloc<float>::free(rec1);
+  //MyAlloc<float>::free(rec2);
   // initi
 }
 void sigsbee()

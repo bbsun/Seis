@@ -10,6 +10,7 @@ OBJ = lsrtm/lsrtm.o \
     util/wavelet.o \
     filter/fft.o \
     filter/dct.o \
+    filter/smooth.o \
     lsrtm/datastr.o \
     lsrtm/inversion.o  
 CXX = mpicxx
