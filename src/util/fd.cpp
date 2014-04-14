@@ -176,7 +176,130 @@ float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
 }
 float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec)
 {
-
+  int layer = 4;
+  int nzpml = nz + 2*pml;
+  int nxpml = nx + 2*pml;
+  int szpml = sz + pml;
+  int sxpml = sx + pml;
+  float invdx2 = 1.0f/(dx*dx);
+  float invdz2 = 1.0f/(dz*dz);
+  float dt2     = 1.0f/dt/dt;
+  int *  izpml  = MyAlloc<int> ::alc(nx);
+  float ** w2d    = setAbs(nz,nx,pml);
+  float ** velpml = setVel(vel,nz,nx,pml);
+  float ** img    = MyAlloc<float>::alc(nz,nx);
+  float ** imgpml  = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vt2    = MyAlloc<float>::alc(nzpml,nxpml); 
+  float ** u0     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u0b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21b    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvzz   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvxx   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** lap    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vel3pml= MyAlloc<float>::alc(nzpml,nxpml);
+  float *** up    = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***down   = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***right  = MyAlloc<float>::alc(nt,nzpml,layer);
+  float ***left   = MyAlloc<float>::alc(nt,nzpml,layer);
+  
+  opern(vt2,velpml, velpml, COPY, nzpml, nxpml);
+  opern(vt2,vt2   ,    vt2, SCAL, nzpml, nxpml, dt);
+  opern(vt2,vt2   ,    vt2,  MUL, nzpml, nxpml);
+  opern(vvzz,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvxx,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvzz,vvzz,vvzz,SCAL,nzpml,nxpml,invdz2);
+  opern(vvxx,vvxx,vvxx,SCAL,nzpml,nxpml,invdx2);
+  LOOP
+    vel3pml[ix][iz] = 2.0f/(velpml[ix][iz]*velpml[ix][iz]*velpml[ix][iz]);
+  for(int ix =0 ; ix < nx ; ix++)
+    izpml[ix] = gz[ix]+pml;
+  int NT = nt + ndel;
+  for(int it=0;it<NT;it++)
+    {
+      modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
+      int itp = it - 1;
+      if( itp >=0)
+	u2[sxpml][szpml] += vt2[sxpml][szpml]*wav[itp];
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u2,u1,u0); 
+      LOOP
+	u2[ix][iz] = u2[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]); 
+      itp = it - ndel;
+      if(itp>=0)
+      SaveAtBoundary(up,down,right,left,u2,pml,layer,nz,nx,true,itp);
+      float ** tp = u0;
+      u0 = u1;
+      u1 = u2;
+      u2 = tp;
+    }
+  opern(u0,VALUE,nzpml,nxpml,0.0f);
+  opern(u1,VALUE,nzpml,nxpml,0.0f);
+  opern(u2,VALUE,nzpml,nxpml,0.0f);
+  for(int it=NT-1;it>=ndel;it--)
+    {
+      int itp = it-1;
+      if(itp>0)
+      u2[sxpml][szpml] -=vt2[sxpml][szpml]*wav[itp];
+      itp = it-ndel;
+      SaveAtBoundary(up,down,right,left,u1,pml,layer,nz,nx,false,itp);
+      modeling2D_high(u2,u1,u0,vvzz,vvxx,nzpml,nxpml);
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u0,u1,u2);
+      LOOP
+	u0[ix][iz] = u0[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]);
+      LOOP
+	lap[ix][iz] = (u2[ix][iz] +u0[ix][iz] -2*u1[ix][iz])*dt2;
+      
+      
+      modeling2D_high(u2b,u1b,u0b,vvzz,vvxx,nzpml,nxpml);
+      if(itp >=0)
+	for(int ix=0;ix<nx;ix++){
+	  int iz          = izpml[ix];
+	  u0b[ix+pml][iz]+=  rec[ix][itp]*vt2[ix+pml][iz] ;
+	}
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21b,u0b,u1b,u2b);
+      LOOP
+	u0b[ix][iz] = u0b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]);
+      LOOP
+	imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
+      
+      float ** tp = u2;
+      u2 = u1;
+      u1 = u0;
+      u0 = tp;
+      float ** tpb = u2b;
+      u2b = u1b;
+      u1b = u0b;
+      u0b = tpb;
+    }
+  for(int ix = 0; ix<nx;ix++)
+    for(int iz=0;  iz<nz;iz++)
+      img[ix][iz] = imgpml[ix+pml][iz+pml];
+  MyAlloc<int>  ::free(izpml);
+  MyAlloc<float>::free(u0);
+  MyAlloc<float>::free(u1);
+  MyAlloc<float>::free(u2);
+  MyAlloc<float>::free(u0b);
+  MyAlloc<float>::free(u1b);
+  MyAlloc<float>::free(u2b);
+  MyAlloc<float>::free(w2d);
+  MyAlloc<float>::free(u21);
+  MyAlloc<float>::free(u21b);
+  MyAlloc<float>::free(vvzz);
+  MyAlloc<float>::free(vvxx);
+  MyAlloc<float>::free(velpml);
+  MyAlloc<float>::free(vel3pml);
+  MyAlloc<float>::free(vt2);
+  MyAlloc<float>::free(lap);
+  MyAlloc<float>::free(up);
+  MyAlloc<float>::free(down);
+  MyAlloc<float>::free(right);
+  MyAlloc<float>::free(left);
+  MyAlloc<float>::free(imgpml);
+  return img;
 }
 void processBoundary(float dt, float dx,float dz,int nx,int nz,int pml, float ** velpml,float ** u31,float ** u3,float ** u2,float ** u1)
 {
@@ -305,6 +428,51 @@ void processBoundary(float dt, float dx,float dz,int nx,int nz,int pml, float **
     tmp = -ax1*u3[xc0][zc0+1] - ax2*u3[xc0+1][zc0]+ax3*(-u2[xc0][zc0]);
     u31[xc0][zc0] = -tmp/(ax1+ax2+ax3);
   }
+}
+void SaveAtBoundary(float ***up,float ***down,float *** right, float *** left, float **u,int pml,int layer,int nz,int nx,bool adj,int it)
+{
+   if(true==adj){
+   // up and down
+	for(int ix=pml;ix<nx+pml;ix++)	
+	for(int il=0;il<layer;il++)	
+	{
+	    int izu = pml + il;	
+	    int izd = nz+pml-1- il;	
+	    up[ix][il][it] = u[ix][izu];	
+	    down[ix][il][it]= u[ix][izd];
+
+	}
+	
+// left and right
+	for(int il=0; il<layer; il++)
+	for(int iz=pml; iz<nz+pml; iz++){
+	    int ixl = pml + il;
+	    int ixr = nx + pml-1 -il;
+	    left[il][iz][it] = u[ixl][iz];
+	   right[il][iz][it] = u[ixr][iz];	
+	}
+   }
+	else{
+	// up and down
+	for(int ix=pml;ix<nx+pml;ix++)	
+	for(int il=0;il<layer;il++)	
+	{
+	    int izu = pml + il;	
+	    int izd = nz+pml-1 - il;	
+	     u[ix][izu]=up[ix][il][it];	
+	     u[ix][izd]=down[ix][il][it];
+
+	}
+// left and right
+	for(int il=0; il<layer; il++)
+	for(int iz=pml; iz<nz+pml; iz++){
+	    int ixl = pml + il;
+	    int ixr = nx + pml-1 -il;
+	    u[ixl][iz]=left[il][iz][it];
+	    u[ixr][iz] =right[il][iz][it];	
+	}
+   }
+	
 }
 void modeling2D_low(float **u0, float **u1, float **u2, float **vvzz,float **vvxx,int nzpml,int nxpml)
 {

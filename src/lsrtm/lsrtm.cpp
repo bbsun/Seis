@@ -11,6 +11,7 @@
 #include "../util/global.h"
 #include "../util/fd.h"
 #include "../util/io.h"
+#include "../util/InitInversion.h"
 #include "datastr.h"
 #include "inversion.h"
 #include "../filter/dct.h"
@@ -67,10 +68,10 @@ void test()
       cout<<" test of modeling " << endl;
     }
   }
-  int nt = 3500*2*2*2; // 14000
-  int nx=150;
+  int nt = 3500*2*2; // 14000
+  int nx=150*2;
   int nz = 400;
-  int sx = 75;
+  int sx = nx/2;
   int sz = 0;
   int pml = 30;
   float dt = 0.0003f;
@@ -86,7 +87,9 @@ void test()
   int NT = nt + delaycal;
   int numdelay = delay + delaycal;
   float * wav = rickerWavelet(dt,fr,numdelay,NT);
-  OMP_CORE = 10;
+  //corWavelet2D(wav,dt,NT);
+  float ** rec1 = MyAlloc<float>::alc(nt,nx);
+  OMP_CORE = 3;
   opern(igz,VALUE,nx,6);
   opern(v,VALUE,nz,nx,4500.0f);
   opern(v0,VALUE,nz,nx,4000.0f);
@@ -105,10 +108,11 @@ void test()
       {
 	v[ix][iz]=4500.0f;
 	}*/
-  float **rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
+  rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
   float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec1,rec1,rec4,SUB,nt,nx);
   write("rec.bin",nt,nx,rec1);
+  read("rec.bin",nt,nx,rec1);
   //writeSu("rec.su",nt,nx,rec1);
   //writeSu("rec1.su",nt,rec1[sx]);
   Smooth::smooth2d1(v,v0,nz,nx,10);
@@ -116,9 +120,13 @@ void test()
   writeSu("v0.su",nz,nx,v0);
   writeSu("v.su",nz,nx,v);
   writeSu("dv.su",nz,nx,dv);
-  float ** born = forward ( dt, dx,  dz,  nt, delaycal, nx, nz, pml, sx, sz, igz, wav, v0, dv );
+  /*float ** born = forward ( dt, dx,  dz,  nt, delaycal, nx, nz, pml, sx, sz, igz, wav, v0, dv );
   write("born.bin",nt,nx,born);
-  writeSu("born.su",nt,nx,born);
+  writeSu("born.su",nt,nx,born);*/
+  float ** img  = adjoint ( dt, dx,  dz,  nt, delaycal, nx, nz, pml, sx, sz, igz, wav, v0, rec1);
+  writeSu("img0.su",nz,nx,img);
+  SumSpray(img,nz,nx);
+  writeSu("img.su",nz,nx,img);
   exit(0);
   corWavelet2D(wav, dt,NT);
   float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
