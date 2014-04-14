@@ -45,15 +45,15 @@ int main(int argc, char *argv[], char *envp[])
 void test()
 {
   cout<<"test of the DCT and IDCT"<<endl;
-  float * signal=MyAlloc<float>::alc(6);
-  for(int i=0;i<6;i++)
+  float * signal=MyAlloc<float>::alc(7);
+  for(int i=0;i<7;i++)
     signal[i] = 5+i;
-  dump("s",signal,6);
-  DCT dct(6,FFTW_ESTIMATE);
+  dump("s",signal,7);
+  DCT dct(7,FFTW_ESTIMATE);
   dct.apply(signal,signal,1);
-  dump("sf",signal,6);
+  dump("sf",signal,7);
   dct.apply(signal,signal,-1);
-  dump("sfi",signal,6);
+  dump("sfi",signal,7);
   exit(0);
   float a=2.0; float b=3.0; float c = 4.0; float d= 5.0;
   float minf = min(a,b,c,d);
