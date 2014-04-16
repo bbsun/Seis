@@ -99,6 +99,13 @@ class Inversion
    *@return                     sub velocty model for calculation
    */
   float ** getVel (float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is);
+  /**
+   * Get the depth sample index for each gather of shot is
+   *@param velfx                fisrt sample of the sub velocity in x-axis
+   *@param nx                   distance smaple number of the sub velocity 
+   *@param is                   shot index
+   *@return                     a array containing the sample depth index iz[nx]
+   */
   int   *  getIgz ( float velfx, int nx ,int is);
   /**
    * cast the grid for calculation to the grid for inversion.

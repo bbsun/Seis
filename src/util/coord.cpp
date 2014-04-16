@@ -142,7 +142,7 @@ int Coords::countShots(string CoordFileName)
   char buffer[256];
   ifstream myfile(CoordFileName);
   if(!myfile){
-    cout << "Unalbe to open myfile";
+    cout << "Unalbe to open "<< CoordFileName<<endl;
     exit(1);
   }
   int cs=1;
@@ -186,7 +186,7 @@ void Coords::printShotInfo(int BeginShot,int EndShot,string CoordFileName, strin
     outfile=new ofstream(OutputFileName);
   if(OutputFileName!="" && OutputFileName!=" "){
     if(!outfile){
-      cout << "Unalbe to open myfile";
+      cout << "Unalbe to open " << CoordFileName <<endl;
       exit(1);
     }
   }
@@ -224,8 +224,8 @@ void Coords::printShotInfo(int BeginShot,int EndShot,string CoordFileName, strin
 }
 void Coords::printShotInfo(int BeginShot, int EndShot, int ns, int ngmax, int * ng, float **sc, float ***gc)
 {
-  for(int i=BeginShot-1;i<=EndShot-1;i++){
-	cout<<"Shot Num: "<<i+1<<" x: "<<sc[i][0]<<" z: "<<sc[i][1]<<"num of traces"<<ng[i]<<endl;
+  for(int i=BeginShot;i<=EndShot;i++){
+	cout<<"Shot Num: "<<i<<" x: "<<sc[i][0]<<" z: "<<sc[i][1]<<"num of traces"<<ng[i]<<endl;
 	for(int j=0;j<ng[i];j++)
 	  {
 	    cout<<"receiver Num: "<<j+1<<" x: "<<gc[i][0][j]<<" z: "<<gc[i][1][j]<<endl;

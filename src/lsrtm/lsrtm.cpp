@@ -24,10 +24,6 @@ void test();
 void sigsbee();
 int main(int argc, char *argv[], char *envp[])
 {
-  test();
-  //sigsbee();
-  //test();
-  return;
   int rank;
   int nprocs;
   //--initial MPI
@@ -39,7 +35,7 @@ int main(int argc, char *argv[], char *envp[])
   inv.readParamFile(argv[1]);
   inv.getConfig();
   inv.test();
-  //--stop mpi
+  //--stop mp
   MPI_Finalize();
   
   return 0;

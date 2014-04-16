@@ -92,6 +92,7 @@ void paramLSRTM::print()
   precsg.print();
   wdir.print();
   v0file.print();
+  vfile.print();
   maskfile.print();
   coordfile.print();
 }

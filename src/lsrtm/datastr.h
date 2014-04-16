@@ -63,6 +63,7 @@ class paramLSRTM
   paramString precsg{paramString("precsg","","",0)};
   paramString wdir{paramString("wdir","","",0)};
   paramString v0file{paramString("v0file","","",0)};
+  paramString vfile{paramString("vfile","","",1)};
   paramString maskfile{paramString("maskfile","","",1)};
   paramString coordfile{paramString("coordfile","","",0)};
 };

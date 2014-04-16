@@ -6,6 +6,9 @@
 #include "../util/debug.h"
 #include "../util/memory.h"
 #include "../util/io.h"
+#include "../util/fd.h"
+#include "../util/wavelet.h"
+#include "../util/global.h"
 #include <string>
 #include <iostream>
 using std::cout;
@@ -50,21 +53,21 @@ void Inversion::readParamFile(string file)
     pff.getString( param.precsg    );
     pff.getString( param.wdir      );
     pff.getString( param.v0file    );
+    pff.getString( param.vfile    );
     pff.getString( param.coordfile );
     // dependent 
     if(param.mask.val) {
       param.maskfile.opt=0; 
       pff.getString( param.maskfile);
     }
-    
     if(rank==0 )
-    param.print();
+      param.print();
     // allocate data
     int ns    = param.ns.val;
     int ngmax = param.ngmax.val; 
-    this->ng = MyAlloc<int>::alc(ns);
-    this->sc = MyAlloc<float>::alc(2,ns);
-    this->gc = MyAlloc<float>::alc(ngmax,2,ns);
+    this->ng  = MyAlloc<int>::alc(ns);
+    this->sc  = MyAlloc<float>::alc(2,ns);
+    this->gc  = MyAlloc<float>::alc(ngmax,2,ns);
 }
 void Inversion::getConfig()
 {
@@ -115,7 +118,72 @@ void Inversion::getConfig()
       Coords::printShotInfo(ns-10,ns,ns,ngmax,this->ng,this->sc,this->gc);
     }
 }
-
+void Inversion::modeling_MPI( float ** v )
+{
+  if(rank == 0)
+    cout<< " modeling ";
+  
+  int is=0;
+  int ns   = param.ns.val;
+  int idone = 0;
+  int itotal= 0;
+  MPI_Status  status;
+  int myid = rank;
+  if(myid==0)
+    masterRun();
+  else
+    {
+      is = -1;
+      MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);    // ask for a shot
+      while ( is < ns)
+	{
+	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);  // receiver a new shot
+	  if( is>=0 && is <ns ) {
+	    idone ++; // begin
+	    int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+	    int nt   = param.nt.val;
+	    int npml     = param.npml.val;
+	    int delay    = param.delay.val;
+	    int delaycal = param.delaycal.val;
+	    int ngmax = param.ngmax.val;
+	    float dt  = param.dt.val;
+	    float dx  = param.dx.val;
+	    float dz  = param.dz.val;
+	    float fr  = param.fr.val;
+	    float ** CSG = MyAlloc<float>::alc(nt,ngmax);
+	    // check the velocity model used for each shot
+	    string wdir = param.wdir.val;
+	    int NT = nt + delaycal;
+	    int numdelay = delay + delaycal;
+	    float * wav = rickerWavelet(dt,fr,numdelay,NT);
+	    float velfx  = param.velfx.val;
+	    float velfxsub;
+	    int  nzsub;
+	    int  nxsub;
+	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v, nz, nx, velfx, is);
+	    Coords::printShotInfo(is,is,ns,ngmax,ng,sc,gc);
+	    int * igz = getIgz(velfxsub,nxsub,is);
+	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.00005f);
+	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.00005f);
+	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
+	    //float ** recsub  = modeling( dt, dx,  dz, nt, delaycal, nxsub, nzsub, npml, sx, sz,  igz, wav, velsub );
+	    //swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, true );
+	    //write( obtainCSGName(is), nt, this->ng[is], CSG );
+	    MyAlloc<float>::free(CSG);
+	    MyAlloc<float>::free(wav);
+	    MyAlloc<float>::free(velsub);
+	    MyAlloc<int>::free(igz);
+	    //MyAlloc<float>::free(recsub);
+	    sleep(2); // end 
+	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+	  }
+	  else
+	    MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	}
+      MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+}
 float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is)
 {
   int lpad    = param.lpad.val;
@@ -181,9 +249,11 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
     float z = gc[is][1][ig];
     if( x>= x_min && x<= x_max){
       int xloc = (x - x_min)/dx;
-      int zloc = (z - 0.0)  /dz;
-      check(xloc>=0 && xloc<nx,"error: getIn in inversion.cpp xloc must be within range [0,nx)");
-      check(zloc>=0 && zloc<NZ,"error: getIn in inversion.cpp zloc musg be within range [0,NZ)");
+      int zloc = (z - 0.0f) /dz;
+      // cout<< "is " << is << " xloc " << xloc << " zloc " << zloc <<endl;
+      //cout<< "is " << is << " x "    << x    << " z    " << z <<endl;
+      check(xloc>=0 && xloc<nx,"error: getIgz in inversion.cpp xloc must be within range [0,nx)");
+      check(zloc>=0 && zloc<NZ,"error: getIgz in inversion.cpp zloc musg be within range [0,NZ)");
       igz[xloc] = zloc;
     }
   }
@@ -255,10 +325,83 @@ string Inversion::obtainNameSu(string dir,string filename,int index)
   sprintf(name,"%s%s%d.su",dir,filename,index);
   return string(name);
 }
+
+void Inversion::masterRun()
+{
+  int ns = param.ns.val;
+  int is=0; int ii=0;
+  int i=0;  int nn=0;
+  int idone = 0;
+  int itotal= 0;
+  int * done = MyAlloc<int>::alc(ns);
+  MPI_Status  status;
+  int nprocs = this->nprocs;
+  int myid = rank;
+  int recvd_tag,recvd_source, send_tag ;
+  
+  for(is=0; is < ns; is++) done[is] = 0;  //done=0, not issued, done=1, issued but not finished, done=2, finished
+  
+  is = 0;
+  while (is < ns   ) {
+    MPI_Recv(&is, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    recvd_tag = status.MPI_TAG;
+    recvd_source = status.MPI_SOURCE;
+    
+    
+    if( recvd_tag  == 1 ) { assert(is >=0 && is < ns);  done[is] = 2; }     //mark is_th source finished  
+    
+    //find not issued shot 
+    is=0;  while( is < ns && done[is] != 0) is++;     
+    
+    if(is < ns) {  //find more to do
+      done[is] = 1;   //mark as issued
+      send_tag = 0;
+      MPI_Send(&is, 1, MPI_INT, recvd_source, send_tag, MPI_COMM_WORLD);
+      //fprintf(stderr,"send shot %d to slave %d \n", is, recvd_source);
+    }
+    
+    //find not finished shot when all shots were issued already
+    if(is >= ns) { is=0; while(is < ns && done[is] != 1) is++; }   //find not finished shot
+    
+    if(is >=  ns) { //all finished 
+      for(is=0; is < ns; is++) {
+	//assert(done[is] == 2);
+	//fprintf(stderr, "is=%d done=%d \n", is, done[is]);
+      }
+      nn = 0;
+      for(i=1; i < nprocs; i++) {
+	MPI_Send(&ns, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+	MPI_Recv(&ii, 1, MPI_INT, i,  2, MPI_COMM_WORLD, &status);
+	nn += ii; 
+	//fprintf(stderr, "node %d has done =%d  total done=%d \n", i, ii, nn );
+      }
+      // fprintf(stderr,"master=%d Finshed, waiting for exit\n", myid);
+    }
+    
+  } 
+  MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MyAlloc<int>::free(done);
+}
 void Inversion::test()
 {
+  bool modeling_test=true;
+  if(modeling_test)
+    {
+      int nx = param.nx.val;
+      int nz = param.nz.val;
+      string vfile = param.vfile.val;
+      float ** v = MyAlloc<float>::alc(nz,nx);
+      read(vfile,nz,nx,v);
+      OMP_CORE = param.nthread.val;
+      Coords::printShotInfo(29,29,param.ns.val,param.ngmax.val,ng,sc,gc);
+      //modeling_MPI(v);
+      MyAlloc<float>::free(v);
+    }
+  if(false)
+    {
   int nx = param.nx.val;
   int nz = param.nz.val;
+  int delaycal = param.delaycal.val;
   float velfx = param.velfx.val;
   float ** vel=MyAlloc<float>::alc(nz,nx);read(param.v0file.val,nz,nx,vel);
   float ** grid=MyAlloc<float>::alc(nz,nx);
@@ -301,4 +444,5 @@ void Inversion::test()
     }
   MyAlloc<float>::free(vel);
   MyAlloc<float>::free(grid);
+  }
 }

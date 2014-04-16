@@ -42,7 +42,7 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   int NT = nt + ndel;
   for(int it=0;it<NT;it++)
     {
-      if (it%1000==1)  cout<<"it="<<it<<endl ;
+      //if (it%1000==1)  cout<<"it="<<it<<endl ;
 	
       modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
       int itp = it - 1;
