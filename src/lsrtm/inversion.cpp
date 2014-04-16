@@ -183,6 +183,103 @@ void Inversion::modeling_MPI( float ** v )
       MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     }
 }
+void  Inversion::adjoint_MPI( float ** img, int migTag)
+{
+ 
+  string v0file = param.v0file.val;
+  float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
+  read(v0file,param.nz.val,param.nx.val,v0);
+  if(rank==0)
+    cout<<"adjoint";
+  
+  int is=0;
+  int idone = 0;
+  int itotal= 0;
+  int myid = rank;
+  int ns  =  nprocs;
+  MPI_Status  status;
+  if(rank==0)
+    masterRun();
+  else
+    {
+      is = -1;
+      MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);            //ask for a shot 
+      while (is < ns) 
+	{
+	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
+	  if(is >=0 && is < ns){
+	    idone++;
+	    int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+	    int nt   = param.nt.val;
+	    int npml     = param.npml.val;
+	    int delay    = param.delay.val;
+	    int delaycal = param.delaycal.val;
+	    int ngmax = param.ngmax.val;
+	    float dt  = param.dt.val;
+	    float dx  = param.dx.val;
+	    float dz  = param.dz.val;
+	    float fr  = param.fr.val;
+	    // check the velocity model used for each shot
+	    string wdir = param.wdir.val;
+	    int NT = nt + delaycal;
+	    int numdelay = delay + delaycal;
+	    float * wav = rickerWavelet(dt,fr,numdelay,NT);
+	    float ** CSG = MyAlloc<float>::alc(nt,ngmax);
+	    float velfx  = param.velfx.val;
+	    float velfxsub;
+	    int  nzsub;
+	    int  nxsub;
+	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
+	    float ** recsub = MyAlloc<float>::alc(nt,nxsub);
+	    string recfile;
+	    if(migTag==RTM_IMG)
+	      recfile = obtainCSGName(is);
+	    else
+	      recfile = obtainBornName(is);
+	    read(recfile,nt,ng[is],CSG);
+	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
+	    int * igz = getIgz(velfxsub,nxsub,is);
+	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
+	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
+	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
+	    float ** imgsub = adjoint ( dt,  dx , dz, nt, delaycal, nxsub, nzsub, npml,  sx, sz, igz, wav, velsub, recsub);
+	    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
+	    swapModel(imgsub, imgtmp, velfxsub, velfx, nzsub,nxsub, nz,nx, false);
+	    string imgfile = obtainImageName(is);
+	    write(imgfile,nz,nx,imgtmp);
+	    MyAlloc<int>::free(igz);
+	    MyAlloc<float>::free(CSG);
+	    MyAlloc<float>::free(wav);
+	    MyAlloc<float>::free(velsub);
+	    MyAlloc<float>::free(recsub);
+	    MyAlloc<float>::free(imgsub);
+	    MyAlloc<float>::free(imgtmp);
+	    sleep(2); 
+	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+	  } else {
+	    MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	    // fprintf(stderr,"Slave=%d Finshed, waiting for exit \n", myid);
+	  }
+	}
+      MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }	
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(rank==0){	
+    int nx   = param.nx.val;
+    int nz   = param.nz.val;
+    opern(img,VALUE, nz , nx,0.0f);
+    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
+    for( int is=0; is<ns; is++){
+      string imgfile = obtainImageName(is);
+      read(imgfile,nz,nx,imgtmp);
+      opern(img,imgtmp,img,ADD,nz,nx);
+    }
+    MyAlloc<float>::free(imgtmp);
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Bcast(&img[0][0], param.nz.val*param.nx.val,MPI_FLOAT,0,MPI_COMM_WORLD); 
+}
 float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is)
 {
   int lpad    = param.lpad.val;
@@ -259,16 +356,17 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
 void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add)
 {
   check(nzm==nzd,"error: SwapModel in inversion.cpp nzm and nzd must be the same. ");
-  if(!add) opern(d,VALUE,nzd,nxd,0.0f);
+  if(!add)
+    opern(d,VALUE,nzd,nxd,0.0f);
   float dx    = param.dx.val;
-  float x_min = mfx ;
-  float x_max = mfx + (nxm - 1) * dx ;
+  float x_min = mfx -0.0001*dx;
+  float x_max = mfx + (nxm - 1) * dx +0.0001*dx;
   for(int ix = 0; ix < nxd ; ix ++)
     {
       float xcor = dfx + ( ix - 1 ) * dx ;
       if( xcor >= x_min && xcor <= x_max)
 	{
-	  int xloc = (xcor - x_min) / dx;
+	  int xloc = (xcor - x_min) / dx+0.0001f;
 	  check(xloc>=0 && xloc<nxm,"error: SwapModel in inversion.cpp xloc must be within range [0,nxm)");
 	  for(int iz = 0; iz < nzd; iz ++)
 	    d[ix][iz] += m[xloc][iz];
@@ -279,14 +377,14 @@ void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, flo
 {
   adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
   float dx = param.dx.val;
-  float x_min = fx;
-  float x_max = fx + ( nx - 1 ) * dx;
+  float x_min = fx-0.0001f*dx;
+  float x_max = fx + ( nx - 1 ) * dx + 0.0001f*dx;
   for(int ig = 0; ig < ng  ; ig ++)
     {
       float gx = gc[is][0][ig];
       if( x_min<=gx && gx<=x_max)
 	{
-	  int xloc = (gx - x_min)/dx ;
+	  int xloc = (gx - x_min)/dx+0.0001f ;
 	  check( xloc>=0 && xloc<nx , "error: getRecord in inversion.cpp xloc must be within range [0,nx)") ;
 	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
 	}
@@ -304,7 +402,7 @@ string Inversion::obtainBornName (int is)
   sprintf(name,"%sBORN%d.dat",param.wdir.val,is);
   return string(name);
 }
-string Inversion::obtianImageName(int is)
+string Inversion::obtainImageName(int is)
 {
   char name[256];
   sprintf(name,"%sIMAGE%d.dat",param.wdir.val,is);
@@ -388,11 +486,14 @@ void Inversion::test()
       int nz = param.nz.val;
       string vfile = param.vfile.val;
       float ** v = MyAlloc<float>::alc(nz,nx);
+      float **img= MyAlloc<float>::alc(nz,nx);
       read(vfile,nz,nx,v);
       OMP_CORE = param.nthread.val;
-      //Coords::printShotInfo(29,29,param.ns.val,param.ngmax.val,ng,sc,gc);
-      modeling_MPI(v);
+      // modeling_MPI(v);
+      adjoint_MPI(img,RTM_IMG);
+      writeSu("img.su",nz,nx,img);
       MyAlloc<float>::free(v);
+      MyAlloc<float>::free(img);
     }
   if(false)
     {

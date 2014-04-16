@@ -153,7 +153,7 @@ class Inversion
    *@param   is                     shot index
    *@return                         file name of the image
    */
-  std::string obtianImageName(int is);
+  std::string obtainImageName(int is);
   /**
    * get a file name for dat binary file. 
    *@param  dir                     directory of the file
