@@ -162,19 +162,18 @@ void Inversion::modeling_MPI( float ** v )
 	    int  nzsub;
 	    int  nxsub;
 	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v, nz, nx, velfx, is);
-	    Coords::printShotInfo(is,is,ns,ngmax,ng,sc,gc);
 	    int * igz = getIgz(velfxsub,nxsub,is);
-	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.00005f);
-	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.00005f);
+	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
+	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
 	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
-	    //float ** recsub  = modeling( dt, dx,  dz, nt, delaycal, nxsub, nzsub, npml, sx, sz,  igz, wav, velsub );
-	    //swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, true );
-	    //write( obtainCSGName(is), nt, this->ng[is], CSG );
+	    float ** recsub  = modeling( dt, dx,  dz, nt, delaycal, nxsub, nzsub, npml, sx, sz,  igz, wav, velsub );
+	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, true );
+	    write( obtainCSGName(is), nt, this->ng[is], CSG );
 	    MyAlloc<float>::free(CSG);
 	    MyAlloc<float>::free(wav);
 	    MyAlloc<float>::free(velsub);
 	    MyAlloc<int>::free(igz);
-	    //MyAlloc<float>::free(recsub);
+	    MyAlloc<float>::free(recsub);
 	    sleep(2); // end 
 	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
 	  }
@@ -238,8 +237,8 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
   
   float dx = param.dx.val;
   float dz = param.dz.val;
-  float x_min = velfx;
-  float x_max = velfx + (nx -1 ) * dx ;
+  float x_min = velfx -0.001*dx;
+  float x_max = velfx + (nx -1 ) * dx +0.001*dx;
   int NZ = param.nz.val;
   for( int ix = 0; ix < nx ; ix++ )
       igz[ix] = 3;
@@ -248,10 +247,8 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
     float x = gc[is][0][ig];
     float z = gc[is][1][ig];
     if( x>= x_min && x<= x_max){
-      int xloc = (x - x_min)/dx;
-      int zloc = (z - 0.0f) /dz;
-      // cout<< "is " << is << " xloc " << xloc << " zloc " << zloc <<endl;
-      //cout<< "is " << is << " x "    << x    << " z    " << z <<endl;
+      int xloc = (x - x_min )/dx + 0.0001;
+      int zloc = (z - 0.0f) /dz+0.0001;
       check(xloc>=0 && xloc<nx,"error: getIgz in inversion.cpp xloc must be within range [0,nx)");
       check(zloc>=0 && zloc<NZ,"error: getIgz in inversion.cpp zloc musg be within range [0,NZ)");
       igz[xloc] = zloc;
@@ -393,8 +390,8 @@ void Inversion::test()
       float ** v = MyAlloc<float>::alc(nz,nx);
       read(vfile,nz,nx,v);
       OMP_CORE = param.nthread.val;
-      Coords::printShotInfo(29,29,param.ns.val,param.ngmax.val,ng,sc,gc);
-      //modeling_MPI(v);
+      //Coords::printShotInfo(29,29,param.ns.val,param.ngmax.val,ng,sc,gc);
+      modeling_MPI(v);
       MyAlloc<float>::free(v);
     }
   if(false)

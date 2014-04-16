@@ -57,8 +57,10 @@ void Coords::getSources(string CoordFileName, int ns, float ** &sc)
 }
 void Coords::getReceivers(string CoordFileName, int ns, int * ng,float *** &gc)
 {
+  float cf = -1e10;
   if(gc==0)
     gc=MyAlloc<float>::alc(max(ng,ns),2,ns);
+  opern(gc,VALUE,max(ng,ns),2,ns,cf);
   char buffer[256];
   ifstream myfile(CoordFileName);
   if(!myfile){
@@ -84,11 +86,13 @@ void Coords::getReceivers(string CoordFileName, int ns, int * ng,float *** &gc)
       if( hs1==hs0){
 	cs +=0;
 	ig++;
+	if(gc[cs][0][ig]==cf && gc[cs][1][ig]==cf)
 	gc[cs][0][ig]=hg1;gc[cs][1][ig]=vg1;
       }
       else{
 	cs++;
 	ig=0;
+	if(gc[cs][0][ig]==cf && gc[cs][1][ig]==cf)
 	gc[cs][0][ig]=hg1;gc[cs][1][ig]=vg1;
       }
       hs0 = hs1; vs0 = vs1;
