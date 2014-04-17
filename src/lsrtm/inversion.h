@@ -170,6 +170,13 @@ class Inversion
    *@return                         file name
    */
   static std::string obtainNameSu ( std::string dir, std::string name,int index);
+  /**
+   * remove direct arrival from the common shot gather.
+   *@param csg                      common shot gater, it will be used as both input and output
+   *@param v                        velocity model 
+   *@param is                       shot index
+   */
+  void removeDirect(float ** csg, float ** v, int is);
  private:
   int rank;            /**< thread index                                                         */
   int nprocs;          /**< total number of threads                                              */

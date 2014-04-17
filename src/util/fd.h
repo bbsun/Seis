@@ -7,4 +7,5 @@ void processBoundary(float dt, float dx,float dz,int nx,int nz,int pml, float **
 void SaveAtBoundary(float ***up,float ***down,float *** right, float *** left, float **u,int pml,int layer,int nz,int nx,bool adj,int it);
 void modeling2D_high(float **u0, float **u1, float **u2, float **vvzz,float **vvxx,int nzpml,int nxpml);
 void modeling2D_low(float **u0, float **u1, float **u2, float **vvzz,float **vvxx,int nzpml,int nxpml);
+void FaQi(float **u, float **r, float **out, int nz, int nx, int pml);
 #endif

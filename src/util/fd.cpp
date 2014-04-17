@@ -6,6 +6,7 @@
 #include "InitInversion.h"
 #include <iostream>
 #include <omp.h>
+#include "../filter/hilbert.h"
 #define LOOP  for(int ix=0;ix<nxpml;ix++) for(int iz=0;iz<nzpml;iz++)
 using std::cout;
 using std::endl;
@@ -263,9 +264,11 @@ float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
       processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21b,u0b,u1b,u2b);
       LOOP
 	u0b[ix][iz] = u0b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]);
-      LOOP
-	imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
+      //LOOP
+       //imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
       
+      opern(lap,lap,vel3pml,MUL,nzpml,nxpml);
+      FaQi(lap,u0b,imgpml,nz,nx,pml);
       float ** tp = u2;
       u2 = u1;
       u1 = u0;
@@ -519,4 +522,31 @@ void modeling2D_high(float **u0, float **u1, float **u2, float **vvzz,float **vv
 	  u1[ix+2][iz]*c7 + u1[ix+3][iz]*c8 +  u1[ix+4][iz]*c9 ;
 	u2[ix][iz] = vvzz[ix][iz]*uzz+vvxx[ix][iz]*uxx+2*u1[ix][iz]-u0[ix][iz];
       }
+}
+void FaQi(float **U,float **R,float ** out,int nz, int nx, int pml)
+{
+  int nzpml = nz + pml*2;
+  int nxpml = nx + pml*2;
+  int half  = 30;
+  float scal= 2.0f/4.0f;
+#ifdef _OPENMP
+  (void) omp_set_dynamic(false);
+  if (omp_get_dynamic()) {printf("Warning: dynamic adjustment of threads has been set\n");}
+  (void) omp_set_num_threads(OMP_CORE);
+#endif
+#pragma omp parallel
+  {  
+    Hilbert<float> hl(half);
+    float * uh = MyAlloc<float>::alc(nzpml);
+    float * rh = MyAlloc<float>::alc(nzpml);
+#pragma omp for
+    for(int ix=pml;ix<(nxpml-pml);ix++){
+      hl.Apply(U[ix],uh,nzpml);
+      hl.Apply(R[ix],rh,nzpml);
+      for(int iz=pml;iz<(nzpml-pml);iz++)
+	out[ix][iz] += scal*(U[ix][iz]*R[ix][iz] - uh[iz]*rh[iz]);
+    }
+	MyAlloc<float>::free(uh);
+	MyAlloc<float>::free(rh);
+  }
 }

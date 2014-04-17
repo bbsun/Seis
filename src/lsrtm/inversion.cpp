@@ -9,12 +9,18 @@
 #include "../util/fd.h"
 #include "../util/wavelet.h"
 #include "../util/global.h"
+#include "../filter/hilbert.h"
+#include <vector>
 #include <string>
 #include <iostream>
+#include <math.h>
+#include <omp.h>
 using std::cout;
 using std::endl;
 using std::string;
+using std::vector;
 #define verbose      false
+#define FALSE false
 Inversion::Inversion(int rank, int nprocs)
 {
   this->rank   = rank;
@@ -168,6 +174,7 @@ void Inversion::modeling_MPI( float ** v )
 	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
 	    float ** recsub  = modeling( dt, dx,  dz, nt, delaycal, nxsub, nzsub, npml, sx, sz,  igz, wav, velsub );
 	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, true );
+	    removeDirect(CSG,v,is);
 	    write( obtainCSGName(is), nt, this->ng[is], CSG );
 	    MyAlloc<float>::free(CSG);
 	    MyAlloc<float>::free(wav);
@@ -196,7 +203,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
   int idone = 0;
   int itotal= 0;
   int myid = rank;
-  int ns  =  nprocs;
+  int ns  =  param.ns.val;
   MPI_Status  status;
   if(rank==0)
     masterRun();
@@ -238,6 +245,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
 	    else
 	      recfile = obtainBornName(is);
 	    read(recfile,nt,ng[is],CSG);
+	    removeDirect(CSG,v0,is);
 	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
 	    int * igz = getIgz(velfxsub,nxsub,is);
 	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
@@ -355,20 +363,22 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
 }
 void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add)
 {
+  int layer = 4;
   check(nzm==nzd,"error: SwapModel in inversion.cpp nzm and nzd must be the same. ");
   if(!add)
     opern(d,VALUE,nzd,nxd,0.0f);
   float dx    = param.dx.val;
-  float x_min = mfx -0.0001*dx;
+  float x_min = mfx -0.0001*dx  ;
   float x_max = mfx + (nxm - 1) * dx +0.0001*dx;
-  for(int ix = 0; ix < nxd ; ix ++)
+  for(int ix = layer; ix < nxd-layer ; ix ++)
     {
       float xcor = dfx + ( ix - 1 ) * dx ;
       if( xcor >= x_min && xcor <= x_max)
 	{
 	  int xloc = (xcor - x_min) / dx+0.0001f;
 	  check(xloc>=0 && xloc<nxm,"error: SwapModel in inversion.cpp xloc must be within range [0,nxm)");
-	  for(int iz = 0; iz < nzd; iz ++)
+	  if(xloc>=4 && xloc<=nxm-4)
+	  for(int iz = layer; iz < nzd-layer; iz ++)
 	    d[ix][iz] += m[xloc][iz];
 	}
     }
@@ -414,6 +424,7 @@ string Inversion::obtainNameDat(string dir,string filename,int index)
   sprintf(name,"%s%s%d.dat",dir,filename,index);
   return string(name);
 }
+
 string Inversion::obtainNameSu(string dir,string filename,int index)
 {
   char name[256];
@@ -421,6 +432,60 @@ string Inversion::obtainNameSu(string dir,string filename,int index)
   return string(name);
 }
 
+void Inversion::removeDirect(float ** csg, float ** v, int is)
+{
+  int ngg  = ng[is];
+  int nt   = param.nt.val;
+  float sx =  sc[is][0];
+  float sz =  sc[is][1];
+  float dx = param.dx.val;
+  float dz = param.dz.val;
+  float dt = param.dt.val;
+  float fr = param.fr.val;
+  float velfx = param.velfx.val;
+  int delay = param.delay.val;
+  int  isz = (sz-0.0f)/dz + 0.0001f;
+  int  isx = (sx-velfx)/dx + 0.0001f;
+
+  for(int ig = 0; ig < ngg ; ig++)
+    {
+      float t  = 0.0f;
+      float gx = gc[is][0][ig];
+      float gz = gc[is][1][ig];
+      int igx = (gx -velfx)/dx + 0.0001f;
+      int igz = (gz -0.0f )/dz + 0.0001f;
+      int adddelay = abs((gz - sz)/dz+0.0001f);
+      int  nx = param.nx.val;
+      int  nz = param.nz.val;
+      adddelay +=100;
+      check(igz >= 0 && igz < nz, "igz in removeDirect must be within range [0 nz)");
+      if(igx<=isx){
+	for(int i=igx;i<isx;i++){
+	  if(i>=0 && i<nx)
+	    t +=dx/v[i][igz];
+	  else if(igx <0)
+	    t +=dx/v[0][igz];
+	  else if(igx >=nx)
+	    t +=dx/v[nx-1][igz];
+	}
+      }
+      else{
+	for(int i=igx;i>isx;i--){
+	  if(i>=0 && i<nx)
+	    t +=dx/v[i][igz];
+	  else if(igx <0)
+	    t +=dx/v[0][igz];
+	  else if(igx >=nx)
+	    t +=dx/v[nx-1][igz];
+	}
+      }
+      int it = (t/dt + delay + adddelay+1.0f/fr/dt*0.5f*5.0) + 0.0001f;
+      it = it<=(nt-1)?it:nt-1;
+      it = it>= 1    ?it:1;
+      opern(csg[ig],VALUE,it,0.0f);
+  
+    }
+}
 void Inversion::masterRun()
 {
   int ns = param.ns.val;
@@ -477,6 +542,7 @@ void Inversion::masterRun()
   MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MyAlloc<int>::free(done);
 }
+
 void Inversion::test()
 {
   bool modeling_test=true;
@@ -489,8 +555,16 @@ void Inversion::test()
       float **img= MyAlloc<float>::alc(nz,nx);
       read(vfile,nz,nx,v);
       OMP_CORE = param.nthread.val;
-      // modeling_MPI(v);
+      //modeling_MPI(v);
       adjoint_MPI(img,RTM_IMG);
+      // test of moving
+      if(false){
+      string csgfile = obtainCSGName(1);
+      float ** csg = MyAlloc<float>::alc(param.nt.val,ng[1]);
+      read(csgfile,param.nt.val,ng[1],csg);
+      removeDirect(csg,v,1);
+      writeSu("csg_dr.su",param.nt.val,ng[1],csg);
+      }
       writeSu("img.su",nz,nx,img);
       MyAlloc<float>::free(v);
       MyAlloc<float>::free(img);
