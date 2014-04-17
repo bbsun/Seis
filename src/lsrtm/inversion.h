@@ -54,10 +54,9 @@ class Inversion
   void modeling_MPI( float ** v );
   /**
    * mpi implementation of born modeling. 
-   *@param [in] v0             background velocity model
    *@param [in] dv             velocity perturbation for calculation
    */
-  void  forward_MPI( float ** v0, float ** dv );
+  void  forward_MPI( float ** dv );
   /**
    * mpi implementation of RTM. 
    *@param [out] img           RTM image

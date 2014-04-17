@@ -10,6 +10,7 @@
 #include "../util/wavelet.h"
 #include "../util/global.h"
 #include "../filter/hilbert.h"
+#include "../filter/smooth.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -19,7 +20,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
-#define verbose      false
+#define verbose      true
 #define FALSE false
 Inversion::Inversion(int rank, int nprocs)
 {
@@ -118,16 +119,16 @@ void Inversion::getConfig()
   MPI_Bcast(&ng[0],       ns,        MPI_INT,   0, MPI_COMM_WORLD); 
   MPI_Bcast(&sc[0][0],    ns*2,      MPI_FLOAT, 0, MPI_COMM_WORLD); 
   MPI_Bcast(&gc[0][0][0], ns*2*ngmax,MPI_FLOAT, 0, MPI_COMM_WORLD); 
-  if(rank==2 && verbose)
+  /*if(rank==2 && verbose)
     {
       Coords::printShotInfo(1,10, ns,ngmax,this->ng,this->sc,this->gc);
       Coords::printShotInfo(ns-10,ns,ns,ngmax,this->ng,this->sc,this->gc);
-    }
+      }*/
 }
 void Inversion::modeling_MPI( float ** v )
 {
   if(rank == 0)
-    cout<< " modeling ";
+    cout<< " modeling "<<endl;
   
   int is=0;
   int ns   = param.ns.val;
@@ -197,7 +198,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
   float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
   read(v0file,param.nz.val,param.nx.val,v0);
   if(rank==0)
-    cout<<"adjoint";
+    cout<<"adjoint"<<endl;
   
   int is=0;
   int idone = 0;
@@ -287,6 +288,82 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
   }
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&img[0][0], param.nz.val*param.nx.val,MPI_FLOAT,0,MPI_COMM_WORLD); 
+}
+void  Inversion::forward_MPI( float ** dv )
+{
+	
+  string v0file = param.v0file.val;
+  float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
+  read(v0file,param.nz.val,param.nx.val,v0);
+  if(rank==0)
+    cout<<"forward"<<endl;
+  
+  int is=0;
+  int idone = 0;
+  int itotal= 0;
+  int myid = rank;
+  int ns  =  param.ns.val;
+  MPI_Status  status;
+  if(rank==0)
+    masterRun();
+  else
+    {
+      is = -1;
+      MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);            //ask for a shot 
+      while (is < ns) 
+	{
+	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
+	  if(is >=0 && is < ns){
+	    idone++;
+	    int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+	    int nt   = param.nt.val;
+	    int npml     = param.npml.val;
+	    int delay    = param.delay.val;
+	    int delaycal = param.delaycal.val;
+	    int ngmax = param.ngmax.val;
+	    float dt  = param.dt.val;
+	    float dx  = param.dx.val;
+	    float dz  = param.dz.val;
+	    float fr  = param.fr.val;
+	    // check the velocity model used for each shot
+	    string wdir = param.wdir.val;
+	    int NT = nt + delaycal;
+	    int numdelay = delay + delaycal;
+	    float * wav = rickerWavelet(dt,fr,numdelay,NT);
+	    float ** CSG = MyAlloc<float>::alc(nt,ngmax);
+	    float velfx  = param.velfx.val;
+	    float velfxsub;
+	    int  nzsub;
+	    int  nxsub;
+	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
+	    float ** dvsub  = getVel(velfxsub, nzsub, nxsub, dv, nz, nx, velfx, is);
+	    int * igz = getIgz(velfxsub,nxsub,is);
+	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
+	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
+	    if(verbose)	
+	      cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
+	    float ** recsub = forward(dt, dx, dz, nt, delaycal,nxsub,nzsub,npml, sx, sz, igz , wav, velsub, dvsub);
+	    string bornfile;
+	    bornfile = obtainBornName(is);
+	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, true );
+	    removeDirect(CSG,v0,is);
+	    write(bornfile,nt,ng[is],CSG);
+	    MyAlloc<int>::free(igz);
+	    MyAlloc<float>::free(CSG);
+	    MyAlloc<float>::free(wav);
+	    MyAlloc<float>::free(dvsub);
+	    MyAlloc<float>::free(velsub);
+	    MyAlloc<float>::free(recsub);
+	    sleep(2); 
+	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+	  } else {
+	    MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	    // fprintf(stderr,"Slave=%d Finshed, waiting for exit \n", myid);
+	  }
+	}
+      MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }	
 }
 float ** Inversion::getVel(float &velfxsub, int &nzsub, int &nxsub, float ** vel,int nz, int nx, float velfx, int is)
 {
@@ -552,11 +629,19 @@ void Inversion::test()
       int nz = param.nz.val;
       string vfile = param.vfile.val;
       float ** v = MyAlloc<float>::alc(nz,nx);
+      float ** dv= MyAlloc<float>::alc(nz,nx);
       float **img= MyAlloc<float>::alc(nz,nx);
       read(vfile,nz,nx,v);
+      Smooth::smooth2d1(v,dv,nz,nx,10);
+      opern(dv,v,dv,SUB,nz,nx);
       OMP_CORE = param.nthread.val;
-      //modeling_MPI(v);
+      forward_MPI(dv);
+      //exit(0);
+      modeling_MPI(v);
       adjoint_MPI(img,RTM_IMG);
+       writeSu("img.su",nz,nx,img);
+      adjoint_MPI(img,LSRTM_STEP);
+      writeSu("img.su",nz,nx,img);
       // test of moving
       if(false){
       string csgfile = obtainCSGName(1);
