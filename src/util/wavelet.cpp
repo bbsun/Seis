@@ -13,7 +13,7 @@ float * rickerWavelet(float dt, float fr, int numDelay, int nt)
     float t = (i-numDelay)*1.0f*dt;
     float t2=t*t;
     wavelet[i]=(1.0f-2.0f*tmp*t2)*exp(-tmp*t2);}
-  corWavelet2D(wavelet, dt, nt);
+  //corWavelet2D(wavelet, dt, nt);
   return wavelet;
 }
 float * wavenumber(float dt, int n)

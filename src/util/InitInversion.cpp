@@ -1,6 +1,8 @@
 #include "InitInversion.h"
 #include "arraymath.h"
 #include "memory.h"
+#include "../filter/dct.h"
+#include "../filter/hilbert.h"
 float ** setAbs(int nz, int nx, int pml)
 {
   int nzpml = nz + 2*pml;
@@ -130,4 +132,31 @@ void SumSpray(float ** f, int n1, int n2)
 		}
 	}
 
+}
+void shift(float * in, float * out, int nt, int shift)
+{
+  DCT dct(nt, FFTW_ESTIMATE);
+  float * cf = MyAlloc<float>::alc(nt);
+  float * cf1= MyAlloc<float>::alc(nt);
+  float * cf2= MyAlloc<float>::alc(nt);
+  float *  y1= MyAlloc<float>::alc(nt);
+  float *  y2= MyAlloc<float>::alc(nt);
+  dct.apply(in,cf,1);
+  opern(cf1,cf,cf,COPY,nt);
+  opern(cf2,cf,cf,COPY,nt);
+  shift = -shift;
+  float tmp = shift*3.1415296/nt;
+  for(int i=0;i<nt;i++)
+    {
+      float cs = cos(tmp*i);
+      float ss = sin(tmp*i);
+      cf1[i] *= cs;
+      cf2[i] *= ss;
+    }
+  dct.apply(cf1,y1,-1);
+  dct.apply(cf2,y2,-1);
+  opern(out,y1,y1,COPY,nt);
+  Hilbert<float> hl(40);
+  hl.apply(y2,y1,nt);
+  opern(out,out,y1,SUB,nt);
 }

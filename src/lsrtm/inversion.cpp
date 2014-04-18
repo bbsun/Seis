@@ -237,8 +237,6 @@ void  Inversion::illum_MPI( float ** ss)
 	    int  nzsub;
 	    int  nxsub;
 	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
-	    string velsubfile = obtainNameSu(param.wdir.val,"velsub",is);
-	    writeSu(velsubfile,nzsub,nxsub,velsub);
 	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
 	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
 	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;

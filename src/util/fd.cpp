@@ -734,8 +734,8 @@ void FaQi(float **U,float **R,float ** out,int nz, int nx, int pml)
     float * rh = MyAlloc<float>::alc(nzpml);
 #pragma omp for
     for(int ix=pml;ix<(nxpml-pml);ix++){
-      hl.Apply(U[ix],uh,nzpml);
-      hl.Apply(R[ix],rh,nzpml);
+      hl.apply(U[ix],uh,nzpml);
+      hl.apply(R[ix],rh,nzpml);
       for(int iz=pml;iz<(nzpml-pml);iz++)
 	out[ix][iz] += scal*(U[ix][iz]*R[ix][iz] - uh[iz]*rh[iz]);
     }

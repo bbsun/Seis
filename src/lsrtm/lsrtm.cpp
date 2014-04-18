@@ -31,6 +31,9 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
+  
+  test();
+  exit(0);
   Inversion inv(rank,nprocs);
   inv.readParamFile(argv[1]);
   inv.getConfig();
@@ -42,6 +45,15 @@ int main(int argc, char *argv[], char *envp[])
 }
 void test()
 {
+  if(true){
+    cout<<"test of the time shift"<<endl;
+    float * wav=rickerWavelet(0.0001,20,0,10000);
+    writeSu("wav.su",10000,wav);
+    float * shiftwav=MyAlloc<float>::alc(10000);
+    shift(wav,shiftwav,10000,2000);
+    writeSu("wavshift.su",10000,shiftwav);
+    exit(0);
+  }
   if(false){
   cout<<"test of the DCT and IDCT"<<endl;
   float * signal=MyAlloc<float>::alc(7);
