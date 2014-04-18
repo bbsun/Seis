@@ -53,6 +53,11 @@ class Inversion
    */
   void modeling_MPI( float ** v );
   /**
+   * illumation compensation for common shot migration
+   *@param[out] illumation compensation matrix
+   */ 
+   void illum_MPI(float ** ss);
+  /**
    * mpi implementation of born modeling. 
    *@param [in] dv             velocity perturbation for calculation
    */
