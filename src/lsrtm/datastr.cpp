@@ -71,6 +71,10 @@ void paramFloat::print()
 }
 void paramLSRTM::print()
 {
+  planeTag.print();
+  pmin.print();
+  dp.print();
+  np.print();
   nthread.print();
   ns.print();
   ngmax.print();

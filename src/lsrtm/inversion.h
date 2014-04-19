@@ -84,9 +84,10 @@ class Inversion
    * we use a dynamic mission pattern to finish our jobs in MPI.
    * this subroutine should be called in the master thread, for example, rank==0
    * we do not need any parameters here, because we have saved all the information in 
-   * the private member. 
+   * the private member.
+   * @param ns number of sources. 
    */
-  void masterRun();
+  void masterRun(int ns);
   /**
    * Return the velocity model for finite difference calcuation.
    * returned velocity model velsub will be used in calculation
@@ -140,6 +141,10 @@ class Inversion
    *@param      adj                   adjoint or not 
    */
   void swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj);
+  /**
+   * get the plane wave sources and plane wave receiver gathers.
+   */
+  void planeWavePrepare_MPI();
   /**
    * get the file name for a common shot gather.
    *@param     is                     shot index

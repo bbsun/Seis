@@ -159,4 +159,9 @@ void shift(float * in, float * out, int nt, int shift)
   Hilbert<float> hl(40);
   hl.apply(y2,y1,nt);
   opern(out,out,y1,SUB,nt);
+  MyAlloc<float>::free(cf);
+  MyAlloc<float>::free(cf1);
+  MyAlloc<float>::free(cf2);
+  MyAlloc<float>::free(y1);
+  MyAlloc<float>::free(y2);
 }

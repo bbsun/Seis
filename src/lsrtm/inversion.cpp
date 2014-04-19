@@ -9,6 +9,7 @@
 #include "../util/fd.h"
 #include "../util/wavelet.h"
 #include "../util/global.h"
+#include "../util/InitInversion.h"
 #include "../filter/hilbert.h"
 #include "../filter/smooth.h"
 #include <vector>
@@ -50,6 +51,7 @@ void Inversion::readParamFile(string file)
     pff.getInt   ( param.maxiter   );
     pff.getInt   ( param.lpad      );
     pff.getInt   ( param.rpad      );
+    pff.getInt   ( param.planeTag  );
     // float parameters
     pff.getFloat ( param.dx        );
     pff.getFloat ( param.dz        );
@@ -67,6 +69,11 @@ void Inversion::readParamFile(string file)
       param.maskfile.opt=0; 
       pff.getString( param.maskfile);
     }
+    if(param.planeTag.val) {
+	  pff.getInt( param.np );
+	  pff.getFloat( param.dp);
+	  pff.getFloat( param.pmin);
+	}
     if(rank==0 )
       param.print();
     // allocate data
@@ -137,7 +144,7 @@ void Inversion::modeling_MPI( float ** v )
   MPI_Status  status;
   int myid = rank;
   if(myid==0)
-    masterRun();
+    masterRun(ns);
   else
     {
       is = -1;
@@ -206,7 +213,7 @@ void  Inversion::illum_MPI( float ** ss)
   int ns  =  param.ns.val;
   MPI_Status  status;
   if(rank==0)
-    masterRun();
+    masterRun(ns);
   else
     {
       is = -1;
@@ -291,7 +298,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
   int ns  =  param.ns.val;
   MPI_Status  status;
   if(rank==0)
-    masterRun();
+    masterRun(ns);
   else
     {
       is = -1;
@@ -394,7 +401,7 @@ void  Inversion::forward_MPI( float ** dv )
   int ns  =  param.ns.val;
   MPI_Status  status;
   if(rank==0)
-    masterRun();
+    masterRun(ns);
   else
     {
       is = -1;
@@ -653,9 +660,8 @@ void Inversion::removeDirect(float ** csg, float ** v, int is)
   
     }
 }
-void Inversion::masterRun()
+void Inversion::masterRun(int ns)
 {
-  int ns = param.ns.val;
   int is=0; int ii=0;
   int i=0;  int nn=0;
   int idone = 0;
@@ -709,7 +715,105 @@ void Inversion::masterRun()
   MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MyAlloc<int>::free(done);
 }
+ void Inversion::planeWavePrepare_MPI()
+ {
+	 check(param.planeTag.val,"in param planeTag must be true(none zero) to use subroutine planeWavePrepare");
+	 int np     = param.np.val;
+	 float dp   = param.dp.val;
+	 float pmin = param.pmin.val;
+     if(rank==0)
+     cout<<" planewavePrepare "<<endl;
+     int is=0;
+     int idone = 0;
+     int itotal= 0;
+     int myid = rank;
+     int ns  =  np;
+     MPI_Status  status;
+     if(rank==0)
+     masterRun(np);
+     else
+     {
+      is = -1;
+      MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);            //ask for a shot 
+      while (is < ns) 
+	{
+	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
+	  if(is >=0 && is < ns){
+		  
+	    idone++;
+	    int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+	    int nt   = param.nt.val;
+	    int npml     = param.npml.val;
+	    int delay    = param.delay.val;
+	    int delaycal = param.delaycal.val;
+	    int ngmax = param.ngmax.val;
+	    float dt  = param.dt.val;
+	    float dx  = param.dx.val;
+	    float dz  = param.dz.val;
+	    float fr  = param.fr.val;
+	    float NT  = nt + delaycal;
+	    float velfx = param.velfx.val;
+	    float ** sou=MyAlloc<float>::alc(NT,nx);
+	    float ** rec=MyAlloc<float>::alc(nt,nx);
+	    float ** tr =MyAlloc<float>::alc(nt,nx);
+	    float ** CSG=MyAlloc<float>::alc(nt,ngmax);
+	    float p     = pmin + is * dp;
+	    float velmin = velfx-0.0001*dx;
+	    float velmax = velfx + (nx-1)*dx+0.0001*dx;
+	    float * wav  = rickerWavelet(dt,fr,0,NT);
+	    float * tw   = MyAlloc<float>::alc(NT);
+	    cout<<"ip "<< is << "p : "<< p << endl;
+	    for(int ishot = 0; ishot < param.ns.val ; ishot ++)
+	    {
+			// process source
+			float sx = sc[ishot][0];
+			
+			//check((sx-velmin)>=0 && (velmax-sx)>=0,"sx must be in the range [velmin,velmax]");
+			float distance = (p>0)? (sx -velmin): (velmax -sx);
+			int idts = distance*sqrt(p*p)/dt +delay + delaycal;
+			int idtr = distance*sqrt(p*p)/dt ;
+			shift(wav,tw,NT,idts);
+			int isx = (sx - velmin)/dx + 0.0001f;
+			//check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
+			opern(sou[isx],sou[isx],tw,ADD,NT);
+			// process receivers
+			string CSGfile = obtainCSGName(ishot);
+			read(CSGfile,nt,this->ng[ishot],CSG);
+			for(int ig=0; ig<this->ng[ishot];ig++)
+			{
+				shift(CSG[ig],CSG[ig],nt,idtr);
+			}
+			swapReord( CSG, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
+			opern(rec,tr,rec,SUB,nt,nx);
+		}
+		string sfile = obtainNameDat(param.wdir.val,"PLANE_S",is);
+		string rfile = obtainNameDat(param.wdir.val,"PLANE_R",is);
+		string sfile_su = obtainNameSu(param.wdir.val,"PLANE_S",is);
+		string rfile_su = obtainNameSu(param.wdir.val,"PLANE_R",is);
+		write(sfile,NT,nx,sou);
+		write(rfile,nt,nx,rec);
+		writeSu(sfile_su,NT,nx,sou);
+		writeSu(rfile_su,nt,nx,rec);
+		cout<<"file write finished"<<endl;
+		MyAlloc<float>::free(sou);
+		MyAlloc<float>::free(rec);
+		MyAlloc<float>::free(tr) ;
+		MyAlloc<float>::free(CSG);
+		MyAlloc<float>::free(wav);
+		MyAlloc<float>::free(tw);
 
+		
+	    sleep(2); 
+	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+	  } else {
+	    MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	    // fprintf(stderr,"Slave=%d Finshed, waiting for exit \n", myid);
+	  }
+	}
+      MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+ }
 void Inversion::test()
 {
   bool modeling_test=true;
@@ -725,12 +829,13 @@ void Inversion::test()
       Smooth::smooth2d1(v,dv,nz,nx,10);
       opern(dv,v,dv,SUB,nz,nx);
       OMP_CORE = param.nthread.val;
-      illum_MPI(img);
+      planeWavePrepare_MPI();
+      //illum_MPI(img);
       //forward_MPI(dv);
       //exit(0);
       //modeling_MPI(v);
       //adjoint_MPI(img,RTM_IMG);
-      writeSu("illum.su",nz,nx,img);
+     // writeSu("illum.su",nz,nx,img);
       // adjoint_MPI(img,LSRTM_STEP);
       //writeSu("img2.su",nz,nx,img);
       // test of moving

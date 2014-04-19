@@ -53,6 +53,7 @@ class paramLSRTM
  public:
   void print();
  public:
+  paramInt   planeTag{paramInt("planeTag",0,0,1)};
   paramInt   nthread{paramInt("nthread",0,1,1)};
   paramInt   ns{paramInt("ns",0,0,0)},   ngmax{paramInt("ngmax",0,0,0)};
   paramInt   nx{paramInt("nx",0,0,0)},   nz{paramInt("nz",0,0,0)},   nt{paramInt("nt",0,0,0)},   npml{paramInt("npml",0,DEFAULT_NPML,1)} ;
@@ -60,6 +61,9 @@ class paramLSRTM
   paramInt   lpad{paramInt("lpad",0,0,1)}, rpad{paramInt("rpad",0,0,1)};
   paramFloat dx{paramFloat("dx",0,0,0)}, dz{paramFloat("dz",0,0,0)}, dt{paramFloat("dt",0,0,0)}, fr{paramFloat("fr",0,0,0)};
   paramFloat velfx{paramFloat("velfx",0,0,1)};
+  paramFloat pmin{paramFloat("pmin",0,0,0)};
+  paramFloat dp{paramFloat("dp",0,0,0)};
+  paramInt   np{paramInt("np",0,0,0)};
   paramString precsg{paramString("precsg","","",0)};
   paramString wdir{paramString("wdir","","",0)};
   paramString v0file{paramString("v0file","","",0)};

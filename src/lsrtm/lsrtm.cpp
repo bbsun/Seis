@@ -32,8 +32,6 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
   
-  test();
-  exit(0);
   Inversion inv(rank,nprocs);
   inv.readParamFile(argv[1]);
   inv.getConfig();
