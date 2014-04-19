@@ -3,6 +3,8 @@
 #include "memory.h"
 #include "../filter/dct.h"
 #include "../filter/hilbert.h"
+#include "../filter/fft.h"
+#include "wavelet.h"
 float ** setAbs(int nz, int nx, int pml)
 {
   int nzpml = nz + 2*pml;
@@ -164,4 +166,54 @@ void shift(float * in, float * out, int nt, int shift)
   MyAlloc<float>::free(cf2);
   MyAlloc<float>::free(y1);
   MyAlloc<float>::free(y2);
+}
+void shiftFFT(float * in, float * out, int nt, int shift)
+{
+  DCT dct(nt, FFTW_ESTIMATE);
+  float * cf = MyAlloc<float>::alc(nt);
+  float * cf1= MyAlloc<float>::alc(nt);
+  float * cf2= MyAlloc<float>::alc(nt);
+  float *  y1= MyAlloc<float>::alc(nt);
+  float *  y2= MyAlloc<float>::alc(nt);
+  float *  fr= wavenumber(1,nt);
+  fftw_complex * yc=(fftw_complex *)fftw_malloc(sizeof(fftw_complex)*nt);
+  dct.apply(in,cf,1);
+  opern(cf1,cf,cf,COPY,nt);
+  opern(cf2,cf,cf,COPY,nt);
+  shift = -shift;
+  float tmp = shift*3.1415296/nt;
+  for(int i=0;i<nt;i++){
+    float cs = cos(tmp*i);
+    float ss = sin(tmp*i);
+    cf1[i] *= cs;
+    cf2[i] *= ss;
+  }
+  dct.apply(cf1,y1,-1);
+  dct.apply(cf2,y2,-1);
+  opern(out,y1,y1,COPY,nt);
+  Hilbert<float> hl(150);
+  for(int i=0;i<nt;i++){ 
+    yc[i][0] = y2[i];
+    yc[i][1] = 0.0f;
+  }
+  fft(-1,nt,yc);
+  for(int i=1;i<nt;i++)
+    if(fr[i]<0 && i!=nt/2){
+      yc[i][0] = 0.0;
+      yc[i][1] = 0.0;
+    }
+  yc[0][0] /=2;
+  yc[0][1] /=2;
+  yc[nt/2][0] /=2;
+  yc[nt/2][1] /=2;
+  fft(1,nt,yc);
+  for(int i=0;i<nt;i++)
+    out[i] = out[i] - yc[i][1]*2.0f;
+  fftw_free(yc);
+  MyAlloc<float>::free(cf);
+  MyAlloc<float>::free(cf1);
+  MyAlloc<float>::free(cf2);
+  MyAlloc<float>::free(y1);
+  MyAlloc<float>::free(y2);
+  MyAlloc<float>::free(fr);
 }

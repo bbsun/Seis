@@ -12,4 +12,13 @@ void SumSpray(float ** f, int n1, int n2);
  *@param m       shift in  sample 
  */
 void shift(float * in, float * out, int nt, int m);
+/**
+ *SHIFT A SIGNAL BY m sample x_new=x[n-m].
+ *Hilbert transform is applied in the frequency domain
+ *@param in      input signal
+ *@param out     output signal
+ *@param m       shift in sample
+ */
+void shiftFFT(float * in, float *out, int nt, int m);
+
 #endif

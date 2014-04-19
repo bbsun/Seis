@@ -31,7 +31,6 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
-  
   Inversion inv(rank,nprocs);
   inv.readParamFile(argv[1]);
   inv.getConfig();
@@ -50,6 +49,8 @@ void test()
     float * shiftwav=MyAlloc<float>::alc(10000);
     shift(wav,shiftwav,10000,2000);
     writeSu("wavshift.su",10000,shiftwav);
+    shiftFFT(wav,shiftwav,10000,2000);
+    writeSu("wavshiftFFT.su",10000,shiftwav);
     exit(0);
   }
   if(false){

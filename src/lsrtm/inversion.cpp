@@ -769,23 +769,23 @@ void Inversion::masterRun(int ns)
 			// process source
 			float sx = sc[ishot][0];
 			
-			//check((sx-velmin)>=0 && (velmax-sx)>=0,"sx must be in the range [velmin,velmax]");
+			check((sx-velmin)>=0 && (velmax-sx)>=0,"sx must be in the range [velmin,velmax]");
 			float distance = (p>0)? (sx -velmin): (velmax -sx);
 			int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 			int idtr = distance*sqrt(p*p)/dt ;
-			shift(wav,tw,NT,idts);
+			shiftFFT(wav,tw,NT,idts);
 			int isx = (sx - velmin)/dx + 0.0001f;
-			//check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
+			check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 			opern(sou[isx],sou[isx],tw,ADD,NT);
 			// process receivers
 			string CSGfile = obtainCSGName(ishot);
 			read(CSGfile,nt,this->ng[ishot],CSG);
 			for(int ig=0; ig<this->ng[ishot];ig++)
 			{
-				shift(CSG[ig],CSG[ig],nt,idtr);
+				shiftFFT(CSG[ig],CSG[ig],nt,idtr);
 			}
 			swapReord( CSG, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
-			opern(rec,tr,rec,SUB,nt,nx);
+			opern(rec,tr,rec,ADD,nt,nx);
 		}
 		string sfile = obtainNameDat(param.wdir.val,"PLANE_S",is);
 		string rfile = obtainNameDat(param.wdir.val,"PLANE_R",is);
@@ -834,10 +834,10 @@ void Inversion::test()
       //exit(0);
       modeling_MPI(v);
       planeWavePrepare_MPI();
-      //adjoint_MPI(img,RTM_IMG);
+      adjoint_MPI(img,RTM_IMG);
      // writeSu("illum.su",nz,nx,img);
-      // adjoint_MPI(img,LSRTM_STEP);
-      //writeSu("img2.su",nz,nx,img);
+      //adjoint_MPI(img,LSRTM_STEP);
+      writeSu("img500.su",nz,nx,img);
       // test of moving
       if(false){
       string csgfile = obtainCSGName(1);

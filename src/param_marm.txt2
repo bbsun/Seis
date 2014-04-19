@@ -1,5 +1,5 @@
 
-nthread   2
+nthread   4
 planeTag  1
 ns        500
 ngmax     2299
