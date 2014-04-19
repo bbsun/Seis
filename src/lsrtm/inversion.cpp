@@ -763,7 +763,7 @@ void Inversion::masterRun(int ns)
 	    float velmax = velfx + (nx-1)*dx+0.0001*dx;
 	    float * wav  = rickerWavelet(dt,fr,0,NT);
 	    float * tw   = MyAlloc<float>::alc(NT);
-	    cout<<"ip "<< is << "p : "<< p << endl;
+	    cout<<"  ip "<< is << "  p : "<< p << endl; 
 	    for(int ishot = 0; ishot < param.ns.val ; ishot ++)
 	    {
 			// process source
@@ -795,7 +795,6 @@ void Inversion::masterRun(int ns)
 		write(rfile,nt,nx,rec);
 		writeSu(sfile_su,NT,nx,sou);
 		writeSu(rfile_su,nt,nx,rec);
-		cout<<"file write finished"<<endl;
 		MyAlloc<float>::free(sou);
 		MyAlloc<float>::free(rec);
 		MyAlloc<float>::free(tr) ;
@@ -829,11 +828,12 @@ void Inversion::test()
       Smooth::smooth2d1(v,dv,nz,nx,10);
       opern(dv,v,dv,SUB,nz,nx);
       OMP_CORE = param.nthread.val;
-      planeWavePrepare_MPI();
+      
       //illum_MPI(img);
       //forward_MPI(dv);
       //exit(0);
-      //modeling_MPI(v);
+      modeling_MPI(v);
+      planeWavePrepare_MPI();
       //adjoint_MPI(img,RTM_IMG);
      // writeSu("illum.su",nz,nx,img);
       // adjoint_MPI(img,LSRTM_STEP);

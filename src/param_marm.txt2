@@ -1,0 +1,30 @@
+
+nthread   2
+planeTag  1
+ns        500
+ngmax     2299
+np        93
+pmin      -1.15
+dp        0.026666
+nx        2301
+nz        751
+nt        8000
+npml      20
+delay     10
+delaycal  500
+mask      1
+maxiter   20
+lpad 2
+rpad 2
+dx 0.004
+dz 0.004
+dt 0.0004
+fr 20
+velfx 0.0
+precsg     /home/sunbb/sh/datatemp/marm/CSG2/CSG
+wdir       /home/sunbb/sh/datatemp/marm/WDIR2/
+vfile      /home/sunbb/sh/datatemp/marm/marm.bin
+v0file     /home/sunbb/sh/datatemp/marm/marmsm.dat
+coordfile /home/sunbb/sh/datatemp/marm/coords500.txt
+maskfile  /home/sunbb/sh/datatemp/marm/mask.bin
+

@@ -156,7 +156,7 @@ void shift(float * in, float * out, int nt, int shift)
   dct.apply(cf1,y1,-1);
   dct.apply(cf2,y2,-1);
   opern(out,y1,y1,COPY,nt);
-  Hilbert<float> hl(40);
+  Hilbert<float> hl(150);
   hl.apply(y2,y1,nt);
   opern(out,out,y1,SUB,nt);
   MyAlloc<float>::free(cf);
