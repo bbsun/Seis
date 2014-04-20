@@ -571,7 +571,7 @@ void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, flo
       if( x_min<=gx && gx<=x_max)
 	{
 	  int xloc = (gx - x_min)/dx+0.1f ;
-		cout<<"is "<< is << "ig "<< ig << "xloc " << xloc <<endl;
+	  //cout<<"is "<< is << "ig "<< ig << "xloc " << xloc <<endl;
 	  check( xloc>=0 && xloc<nx , "error: getRecord in inversion.cpp xloc must be within range [0,nx)") ;
 	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
 	}
@@ -776,7 +776,7 @@ void Inversion::masterRun(int ns)
 			float distance = (p>0)? (sx -velmin): (velmax -sx);
 			int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 			int idtr = distance*sqrt(p*p)/dt ;
-			shiftFFT(wav,tw,NT,idts);
+			shift(wav,tw,NT,idts);
 			int isx = (sx - velmin)/dx + 0.0001f;
 			check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 			opern(sou[isx],sou[isx],tw,ADD,NT);
@@ -785,7 +785,7 @@ void Inversion::masterRun(int ns)
 			read(CSGfile,nt,this->ng[ishot],CSG);
 			for(int ig=0; ig<this->ng[ishot];ig++)
 			{
-				shiftFFT(CSG[ig],CSG[ig],nt,idtr);
+				shift(CSG[ig],CSG[ig],nt,idtr);
 			}
 			swapReord( CSG, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
 			opern(rec,tr,rec,ADD,nt,nx);
@@ -804,8 +804,6 @@ void Inversion::masterRun(int ns)
 		MyAlloc<float>::free(CSG);
 		MyAlloc<float>::free(wav);
 		MyAlloc<float>::free(tw);
-
-		exit(0);
 	    sleep(2); 
 	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
 	  } else {
@@ -922,10 +920,10 @@ void Inversion::test()
       //exit(0);
       //modeling_MPI(v);
       planeWavePrepare_MPI();
-      //adjointPlane_MPI(img,RTM_IMG);
+      adjointPlane_MPI(img,RTM_IMG);
      // writeSu("illum.su",nz,nx,img);
       //adjoint_MPI(img,LSRTM_STEP);
-      writeSu("img500.su",nz,nx,img);
+      writeSu("imgPlane.su",nz,nx,img);
       // test of moving
       if(false){
       string csgfile = obtainCSGName(1);
