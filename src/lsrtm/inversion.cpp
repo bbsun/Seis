@@ -348,8 +348,10 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
 	    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
 	    swapModel(imgsub, imgtmp, velfxsub, velfx, nzsub,nxsub, nz,nx, false);
 	    string imgfile = obtainImageName(is);
+	    if(param.mask.val){
 	    read(param.maskfile.val,nz,nx,mask);
 	    opern(imgtmp,imgtmp,mask,MUL,nz,nx);
+	    }
 	    write(imgfile,nz,nx,imgtmp);
 	    MyAlloc<int>::free(igz);
 	    MyAlloc<float>::free(CSG);
@@ -561,14 +563,15 @@ void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, flo
 {
   adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
   float dx = param.dx.val;
-  float x_min = fx-0.0001f*dx;
-  float x_max = fx + ( nx - 1 ) * dx + 0.0001f*dx;
+  float x_min = fx;
+  float x_max = fx + ( nx - 1 ) * dx ;
   for(int ig = 0; ig < ng  ; ig ++)
     {
       float gx = gc[is][0][ig];
       if( x_min<=gx && gx<=x_max)
 	{
-	  int xloc = (gx - x_min)/dx+0.0001f ;
+	  int xloc = (gx - x_min)/dx+0.1f ;
+		cout<<"is "<< is << "ig "<< ig << "xloc " << xloc <<endl;
 	  check( xloc>=0 && xloc<nx , "error: getRecord in inversion.cpp xloc must be within range [0,nx)") ;
 	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
 	}
@@ -802,7 +805,7 @@ void Inversion::masterRun(int ns)
 		MyAlloc<float>::free(wav);
 		MyAlloc<float>::free(tw);
 
-		
+		exit(0);
 	    sleep(2); 
 	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
 	  } else {
@@ -813,6 +816,91 @@ void Inversion::masterRun(int ns)
       MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     }
  }
+void  Inversion::adjointPlane_MPI( float ** img, int migTag){
+  string v0file = param.v0file.val;
+  float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
+  read(v0file,param.nz.val,param.nx.val,v0);
+  if(rank==0)
+    cout<<"adjointPlane"<<endl;
+  
+  int is=0;
+  int idone = 0;
+  int itotal= 0;
+  int myid = rank;
+  int ns  =  param.np.val;
+  MPI_Status  status;
+  if(rank==0)
+    masterRun(ns);
+  else{
+    is = -1;
+    MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);            //ask for a shot 
+    while (is < ns) {
+      MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
+      if(is >=0 && is < ns){
+	idone++;
+	int nx   = param.nx.val;
+	int nz   = param.nz.val;
+	int nt   = param.nt.val;
+	int npml     = param.npml.val;
+	int delaycal = param.delaycal.val;
+	float dt  = param.dt.val;
+	float dx  = param.dx.val;
+	float dz  = param.dz.val;
+	float fr  = param.fr.val;
+	string wdir = param.wdir.val;
+	int NT = nt + delaycal;
+	float ** sou = MyAlloc<float>::alc(NT,nx);
+	float ** rec = MyAlloc<float>::alc(nt,nx);
+	float ** mask= MyAlloc<float>::alc(nz,nx);
+	string recfile;
+	string soufile;
+	soufile  = obtainNameDat(param.wdir.val,"PLANE_S",is);
+	if(migTag==RTM_IMG)
+	  recfile =  obtainNameDat(param.wdir.val,"PLANE_R",is);
+	else
+	  recfile = obtainBornName(is);
+	read(soufile,NT,nx,sou);
+	read(recfile,nt,nx,rec);
+	int sz = (sc[0][1]-0.0f)/dz + 0.0001f;
+	int gz = (gc[0][1][0]-0.0f)/dz + 0.0001f;
+	cout<< " ip  "<< is <<" sz "<< sc[0][1] << " gz "<< gc[0][1][0] <<endl;
+	float ** imgX = adjointPlane( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou, rec);
+	string imgfile = obtainImageName(is);
+	if(param.mask.val){
+	  read(param.maskfile.val,nz,nx,mask);
+	  opern(imgX,imgX,mask,MUL,nz,nx);
+	}
+	write(imgfile,nz,nx,imgX);
+	MyAlloc<float>::free(sou);
+	MyAlloc<float>::free(rec);
+	MyAlloc<float>::free(mask);
+	MyAlloc<float>::free(imgX);
+	sleep(2); 
+	MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+      } else {
+	MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	// fprintf(stderr,"Slave=%d Finshed, waiting for exit \n", myid);
+      }
+    }
+    MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  }
+  MyAlloc<float>::free(v0);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(rank==0){	
+    int nx   = param.nx.val;
+    int nz   = param.nz.val;
+    opern(img,VALUE, nz , nx,0.0f);
+    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
+    for( int is=0; is<ns; is++){
+      string imgfile = obtainImageName(is);
+      read(imgfile,nz,nx,imgtmp);
+      opern(img,imgtmp,img,ADD,nz,nx);
+    }
+    MyAlloc<float>::free(imgtmp);
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Bcast(&img[0][0], param.nz.val*param.nx.val,MPI_FLOAT,0,MPI_COMM_WORLD); 
+}
 void Inversion::test()
 {
   bool modeling_test=true;
@@ -832,9 +920,9 @@ void Inversion::test()
       //illum_MPI(img);
       //forward_MPI(dv);
       //exit(0);
-      modeling_MPI(v);
+      //modeling_MPI(v);
       planeWavePrepare_MPI();
-      adjoint_MPI(img,RTM_IMG);
+      //adjointPlane_MPI(img,RTM_IMG);
      // writeSu("illum.su",nz,nx,img);
       //adjoint_MPI(img,LSRTM_STEP);
       writeSu("img500.su",nz,nx,img);

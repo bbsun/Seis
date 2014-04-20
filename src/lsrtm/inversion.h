@@ -145,6 +145,12 @@ class Inversion
    * get the plane wave sources and plane wave receiver gathers.
    */
   void planeWavePrepare_MPI();
+  /**	
+   *  mpi application of plane wave RTM.
+   *@param[out]  img                 migration image
+   *@param       migTag              migration tag   
+   */
+   void  adjointPlane_MPI( float ** img, int migTag);
   /**
    * get the file name for a common shot gather.
    *@param     is                     shot index
