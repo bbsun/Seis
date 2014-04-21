@@ -13,6 +13,7 @@ void SumSpray(float ** f, int n1, int n2);
  */
 void shift(float * in, float * out, int nt, int m);
 void shift(float **in, float **out, int nt,int nx, int m);
+void shiftSimple(float **in, float **out, int nt, int nx, int m);
 void shiftFFT(float **in, float **out, int nt, int nx, int m);
 /**
  *SHIFT A SIGNAL BY m sample x_new=x[n-m].

@@ -337,3 +337,14 @@ void shiftFFT(float * in, float * out, int nt, int shift)
   MyAlloc<float>::free(y2);
   MyAlloc<float>::free(fr);
 }
+void shiftSimple(float **in, float **out, int nt, int nx, int m)
+{
+	opern(out,VALUE,nt,nx,0.0f);
+	for(int ix = 0; ix<nx;ix++){
+		for(int it=0;it<nt;it++){
+			int index = it - m;
+			if(index>=0 && index < nt)
+			out[ix][it] = in[ix][index];
+		}
+	}
+}

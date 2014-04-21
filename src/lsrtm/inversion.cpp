@@ -761,6 +761,7 @@ void Inversion::masterRun(int ns)
 	    float ** rec=MyAlloc<float>::alc(nt,nx);
 	    float ** tr =MyAlloc<float>::alc(nt,nx);
 	    float ** CSG=MyAlloc<float>::alc(nt,ngmax);
+		float **CSGN=MyAlloc<float>::alc(nt,ngmax);
 	    float p     = pmin + is * dp;
 	    float velmin = velfx-0.0001*dx;
 	    float velmax = velfx + (nx-1)*dx+0.0001*dx;
@@ -783,16 +784,21 @@ void Inversion::masterRun(int ns)
 			// process receivers
 			string CSGfile = obtainCSGName(ishot);
 			read(CSGfile,nt,this->ng[ishot],CSG);
-			shift(CSG,CSG,nt,this->ng[ishot],idtr);
+			int check = (idtr % (nt*2));
+			if( check>=0 && check<nt)
+				shiftSimple(CSG,CSGN,nt,ng[1],check);
+			else
+				opern(CSGN,VALUE,nt,ng[1],0.0f);
+			//shift(CSG,CSG,nt,this->ng[ishot],idtr);
 			//for(int ig=0; ig<this->ng[ishot];ig++)
 			//{
 			//	shiftFFT(CSG[ig],CSG[ig],nt,idtr);
 			//}
-			swapReord( CSG, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
+			swapReord( CSGN, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
 			opern(rec,tr,rec,ADD,nt,nx);
 		}
-		string sfile = obtainNameDat(param.wdir.val,"PLANE_S",is);
-		string rfile = obtainNameDat(param.wdir.val,"PLANE_R",is);
+		string sfile = obtainNameDat(param.wdir.val,"PLANE_S_NEW",is);
+		string rfile = obtainNameDat(param.wdir.val,"PLANE_R_NEW",is);
 		//string sfile_su = obtainNameSu(param.wdir.val,"PLANE_S",is);
 		//string rfile_su = obtainNameSu(param.wdir.val,"PLANE_R",is);
 		write(sfile,NT,nx,sou);
@@ -803,6 +809,7 @@ void Inversion::masterRun(int ns)
 		MyAlloc<float>::free(rec);
 		MyAlloc<float>::free(tr) ;
 		MyAlloc<float>::free(CSG);
+		MyAlloc<float>::free(CSGN);
 		MyAlloc<float>::free(wav);
 		MyAlloc<float>::free(tw);
 	    sleep(2); 
@@ -853,9 +860,9 @@ void  Inversion::adjointPlane_MPI( float ** img, int migTag){
 	float ** mask= MyAlloc<float>::alc(nz,nx);
 	string recfile;
 	string soufile;
-	soufile  = obtainNameDat(param.wdir.val,"PLANE_S",is);
+	soufile  = obtainNameDat(param.wdir.val,"PLANE_S_NEW",is);
 	if(migTag==RTM_IMG)
-	  recfile =  obtainNameDat(param.wdir.val,"PLANE_R",is);
+	  recfile =  obtainNameDat(param.wdir.val,"PLANE_R_NEW",is);
 	else
 	  recfile = obtainBornName(is);
 	read(soufile,NT,nx,sou);
@@ -925,10 +932,15 @@ void Inversion::test()
       float *  a= MyAlloc<float>::alc(nt);
       float *  b= MyAlloc<float>::alc(nt);
       read(obtainCSGName(1),nt,ng[1],CSG);
-      for(int i=0;i<20000;i+=500){
+      for(int i=0;i<30000;i+=1000){
 	cout<< i <<" "<<ng[1]<<endl;
-      shift(CSG,CSGN,nt,ng[1],i);
-      string file = obtainNameDat(param.wdir.val,"yy",i);
+      //shift(CSG,CSGN,nt,ng[1],i);
+      int check = (i % (nt*2));
+      if( check>=0 && check<nt)
+      shiftSimple(CSG,CSGN,nt,ng[1],check);
+      else
+      opern(CSGN,VALUE,nt,ng[1],0.0f);
+      string file = obtainNameDat(param.wdir.val,"xx",i);
       write(file,nt,ng[1],CSGN);
       }
   }
