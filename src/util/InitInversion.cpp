@@ -5,6 +5,9 @@
 #include "../filter/hilbert.h"
 #include "../filter/fft.h"
 #include "wavelet.h"
+#include <iostream>
+using std::cout;
+using std::endl;
 float ** setAbs(int nz, int nx, int pml)
 {
   int nzpml = nz + 2*pml;
@@ -158,7 +161,7 @@ void shift(float * in, float * out, int nt, int shift)
   dct.apply(cf1,y1,-1);
   dct.apply(cf2,y2,-1);
   opern(out,y1,y1,COPY,nt);
-  Hilbert<float> hl(150);
+  Hilbert<float> hl(100);
   hl.apply(y2,y1,nt);
   opern(out,out,y1,SUB,nt);
   MyAlloc<float>::free(cf);
@@ -166,6 +169,124 @@ void shift(float * in, float * out, int nt, int shift)
   MyAlloc<float>::free(cf2);
   MyAlloc<float>::free(y1);
   MyAlloc<float>::free(y2);
+}
+void shift(float **in0, float **out, int nt,int nx, int shift)
+{
+  float *  fr= wavenumber(1,nt);
+  float * cf = MyAlloc<float>::alc(nt);
+  float * cf1= MyAlloc<float>::alc(nt);
+  float * cf2= MyAlloc<float>::alc(nt);
+  float *  y1= MyAlloc<float>::alc(nt);
+  float *  y2= MyAlloc<float>::alc(nt);
+  float *  y3= MyAlloc<float>::alc(nt);
+  fftwf_plan pf;
+  fftwf_plan pi; 
+  float * tmpf=MyAlloc<float>::alc(nt) ; 
+  float * tmpi=MyAlloc<float>::alc(nt) ; 
+  pf = fftwf_plan_r2r_1d(nt,tmpf,tmpf,FFTW_REDFT10,FFTW_ESTIMATE);
+  pi = fftwf_plan_r2r_1d(nt,tmpi,tmpi,FFTW_REDFT01,FFTW_ESTIMATE);
+  Hilbert<float> hl(150);			   
+  shift = -shift;
+  float tmp = shift*3.1415296/nt;
+  float tmp1 = 1.0f/2/nt;
+  float tmp2 = 2.0f/nt/2.0f/nt;
+  for(int i = 0; i< nx ; i++){
+    fftwf_execute_r2r(pf,in0[i],cf);
+    for(int it = 0; it<nt;it++){
+      float cs = cos(tmp*it);
+      float ss = sin(tmp*it);
+      float cfv = cf[it];
+      cf1[it] = cfv*cs;
+      cf2[it] = cfv*ss;
+    }
+    fftwf_execute_r2r(pi,cf1,y1);
+    fftwf_execute_r2r(pi,cf2,y2);
+    hl.apply(y2,y3,nt);
+    for(int it = 0; it<nt;it++){
+      out[i][it] = (y1[it] - y3[it]) *tmp1;
+    }
+  }
+  fftwf_destroy_plan(pf);
+  fftwf_destroy_plan(pi);
+ 
+  MyAlloc<float>::free(fr);
+  MyAlloc<float>::free(cf);
+  MyAlloc<float>::free(cf1);
+  MyAlloc<float>::free(cf2);
+  MyAlloc<float>::free(y1);
+  MyAlloc<float>::free(y2);
+  MyAlloc<float>::free(y3);
+  MyAlloc<float>::free(tmpf);
+  MyAlloc<float>::free(tmpi);
+}
+void shiftFFT(float ** in0, float ** out, int nt,int nx, int shift)
+{
+  float *  fr= wavenumber(1,nt);
+  float * cf = MyAlloc<float>::alc(nt);
+  float * cf1= MyAlloc<float>::alc(nt);
+  float * cf2= MyAlloc<float>::alc(nt);
+  float *  y1= MyAlloc<float>::alc(nt);
+  float *  y2= MyAlloc<float>::alc(nt);
+  fftwf_complex * yc=(fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*nt);
+  fftwf_plan p1; 
+  fftwf_plan p2;
+  fftwf_plan pf;
+  fftwf_plan pi; 
+  float * tmpf=MyAlloc<float>::alc(nt) ; 
+  float * tmpi=MyAlloc<float>::alc(nt) ; 
+  p1 = fftwf_plan_dft_1d(nt,yc,yc,-1,FFTW_ESTIMATE);
+  p2 = fftwf_plan_dft_1d(nt,yc,yc,1,FFTW_ESTIMATE);
+  pf = fftwf_plan_r2r_1d(nt,tmpf,tmpf,FFTW_REDFT10,FFTW_ESTIMATE);
+  pi = fftwf_plan_r2r_1d(nt,tmpi,tmpi,FFTW_REDFT01,FFTW_ESTIMATE);
+  shift = -shift;
+  float tmp = shift*3.1415296/nt;
+  float tmp1 = 1.0f/2/nt;
+  float tmp2 = 2.0f/nt/2.0f/nt;
+  for(int i = 0; i< nx ; i++){
+    fftwf_execute_r2r(pf,in0[i],cf);
+    for(int it = 0; it<nt;it++){
+      float cs = cos(tmp*it);
+      float ss = sin(tmp*it);
+      float cfv = cf[it];
+      cf1[it] = cfv*cs;
+      cf2[it] = cfv*ss;
+    }
+    fftwf_execute_r2r(pi,cf1,y1);
+    fftwf_execute_r2r(pi,cf2,y2);
+    for(int it=0;it<nt;it++){ 
+      yc[it][0] = y2[it];
+      yc[it][1] = 0.0f;
+    }
+    fftwf_execute(p1);
+    for(int it=1;it<nt;it++)
+      if(fr[it]<0 && it!=nt/2){
+	yc[it][0] = 0.0;
+	yc[it][1] = 0.0;
+      }
+    yc[0][0] /=2;
+    yc[0][1] /=2;
+    yc[nt/2][0] /=2;
+    yc[nt/2][1] /=2;
+    fftwf_execute(p2);
+    for(int it = 0; it<nt;it++){
+      out[i][it] = 0.0f;
+      out[i][it] = y1[it]*tmp1 - yc[it][1] *tmp2;
+    }
+  }
+  fftwf_free(yc);
+  fftwf_destroy_plan(p1);
+  fftwf_destroy_plan(p2);
+  fftwf_destroy_plan(pf);
+  fftwf_destroy_plan(pi);
+ 
+  MyAlloc<float>::free(fr);
+  MyAlloc<float>::free(cf);
+  MyAlloc<float>::free(cf1);
+  MyAlloc<float>::free(cf2);
+  MyAlloc<float>::free(y1);
+  MyAlloc<float>::free(y2);
+  MyAlloc<float>::free(tmpf);
+  MyAlloc<float>::free(tmpi);
 }
 void shiftFFT(float * in, float * out, int nt, int shift)
 {
@@ -191,7 +312,6 @@ void shiftFFT(float * in, float * out, int nt, int shift)
   dct.apply(cf1,y1,-1);
   dct.apply(cf2,y2,-1);
   opern(out,y1,y1,COPY,nt);
-  Hilbert<float> hl(150);
   for(int i=0;i<nt;i++){ 
     yc[i][0] = y2[i];
     yc[i][1] = 0.0f;

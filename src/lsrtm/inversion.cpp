@@ -776,28 +776,29 @@ void Inversion::masterRun(int ns)
 			float distance = (p>0)? (sx -velmin): (velmax -sx);
 			int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 			int idtr = distance*sqrt(p*p)/dt ;
-			shift(wav,tw,NT,idts);
+			shiftFFT(wav,tw,NT,idts);
 			int isx = (sx - velmin)/dx + 0.0001f;
 			check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 			opern(sou[isx],sou[isx],tw,ADD,NT);
 			// process receivers
 			string CSGfile = obtainCSGName(ishot);
 			read(CSGfile,nt,this->ng[ishot],CSG);
-			for(int ig=0; ig<this->ng[ishot];ig++)
-			{
-				shift(CSG[ig],CSG[ig],nt,idtr);
-			}
+			shift(CSG,CSG,nt,this->ng[ishot],idtr);
+			//for(int ig=0; ig<this->ng[ishot];ig++)
+			//{
+			//	shiftFFT(CSG[ig],CSG[ig],nt,idtr);
+			//}
 			swapReord( CSG, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
 			opern(rec,tr,rec,ADD,nt,nx);
 		}
 		string sfile = obtainNameDat(param.wdir.val,"PLANE_S",is);
 		string rfile = obtainNameDat(param.wdir.val,"PLANE_R",is);
-		string sfile_su = obtainNameSu(param.wdir.val,"PLANE_S",is);
-		string rfile_su = obtainNameSu(param.wdir.val,"PLANE_R",is);
+		//string sfile_su = obtainNameSu(param.wdir.val,"PLANE_S",is);
+		//string rfile_su = obtainNameSu(param.wdir.val,"PLANE_R",is);
 		write(sfile,NT,nx,sou);
 		write(rfile,nt,nx,rec);
-		writeSu(sfile_su,NT,nx,sou);
-		writeSu(rfile_su,nt,nx,rec);
+		//writeSu(sfile_su,NT,nx,sou);
+		//writeSu(rfile_su,nt,nx,rec);
 		MyAlloc<float>::free(sou);
 		MyAlloc<float>::free(rec);
 		MyAlloc<float>::free(tr) ;
@@ -906,6 +907,7 @@ void Inversion::test()
     {
       int nx = param.nx.val;
       int nz = param.nz.val;
+      int nt = param.nt.val;
       string vfile = param.vfile.val;
       float ** v = MyAlloc<float>::alc(nz,nx);
       float ** dv= MyAlloc<float>::alc(nz,nx);
@@ -915,6 +917,22 @@ void Inversion::test()
       opern(dv,v,dv,SUB,nz,nx);
       OMP_CORE = param.nthread.val;
       
+      
+      if(false){
+      cout<<" test of shift "<<endl;
+      float ** CSG = MyAlloc<float>::alc(nt,ng[1]);
+      float ** CSGN= MyAlloc<float>::alc(nt,ng[1]);
+      float *  a= MyAlloc<float>::alc(nt);
+      float *  b= MyAlloc<float>::alc(nt);
+      read(obtainCSGName(1),nt,ng[1],CSG);
+      for(int i=0;i<20000;i+=500){
+	cout<< i <<" "<<ng[1]<<endl;
+      shift(CSG,CSGN,nt,ng[1],i);
+      string file = obtainNameDat(param.wdir.val,"yy",i);
+      write(file,nt,ng[1],CSGN);
+      }
+  }
+	  
       //illum_MPI(img);
       //forward_MPI(dv);
       //exit(0);

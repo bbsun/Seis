@@ -423,25 +423,28 @@ float ** adjointPlane(float dt, float dx, float dz, int nt, int ndel, int nx, in
 	u2[ix][iz] = u2[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]); 
       itp = it - ndel;
       if(itp>=0)
-      SaveAtBoundary(up,down,right,left,u2,pml,layer,nz,nx,true,itp);
+      SaveAtBoundary(up,down,right,left,u1,pml,layer,nz,nx,true,itp);
       float ** tp = u0;
       u0 = u1;
       u1 = u2;
       u2 = tp;
     }
+  float ** tmp = u2;
+  u2 = u1;
+  u1 = u0;
+  u0 = tmp;
   opern(u0,VALUE,nzpml,nxpml,0.0f);
-  opern(u1,VALUE,nzpml,nxpml,0.0f);
-  opern(u2,VALUE,nzpml,nxpml,0.0f);
-  for(int it=NT-1;it>=ndel;it--)
+  for(int it=NT-2;it>=ndel;it--)
     {
-      int itp = it-1;
-      
+      int itp;
+      itp = it-ndel;
+      SaveAtBoundary(up,down,right,left,u1,pml,layer,nz,nx,false,itp+1);
+      itp = it;
       if(itp>0){
 	for(int ix=0;ix<nx;ix++)
 	  u2[ix+pml][szpml] -=vt2[ix+pml][szpml]*sou[ix][itp];
       }
-      itp = it-ndel;
-      SaveAtBoundary(up,down,right,left,u1,pml,layer,nz,nx,false,itp);
+      
       modeling2D_high(u2,u1,u0,vvzz,vvxx,nzpml,nxpml);
       processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u0,u1,u2);
       LOOP
