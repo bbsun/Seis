@@ -175,6 +175,103 @@ float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   MyAlloc<float>::free(dvpml);
   return rec;
 }
+float ** forwordPlane(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **dv)
+{
+  int nzpml = nz + 2*pml;
+  int nxpml = nx + 2*pml;
+  int szpml = sz + pml;
+  int gzpml = gz + pml;
+  float invdx2 = 1.0f/(dx*dx);
+  float invdz2 = 1.0f/(dz*dz);
+  float dt2     = 1.0f/dt/dt;
+  
+  int *  izpml  = MyAlloc<int> ::alc(nx);
+  float ** w2d    = setAbs(nz,nx,pml);
+  float ** velpml = setVel(vel,nz,nx,pml);
+  float ** dvpml  = setDv( dv,nz,nx,pml);
+  float ** vt2    = MyAlloc<float>::alc(nzpml,nxpml); 
+  float ** rec    = MyAlloc<float>::alc(nt,nx); 
+  float ** u0     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u0b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21b    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvzz   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvxx   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** lap    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vel3pml= MyAlloc<float>::alc(nzpml,nxpml);
+  opern(vt2,velpml, velpml, COPY, nzpml, nxpml);
+  opern(vt2,vt2   ,    vt2, SCAL, nzpml, nxpml, dt);
+  opern(vt2,vt2   ,    vt2,  MUL, nzpml, nxpml);
+  opern(vvzz,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvxx,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvzz,vvzz,vvzz,SCAL,nzpml,nxpml,invdz2);
+  opern(vvxx,vvxx,vvxx,SCAL,nzpml,nxpml,invdx2);
+  
+  LOOP
+    vel3pml[ix][iz] = 2.0f/(velpml[ix][iz]*velpml[ix][iz]*velpml[ix][iz]);
+
+  
+  int NT = nt + ndel;
+  for(int it=0;it<NT;it++){
+       if (it%100==1)  cout<<"it="<<it<<endl ;
+      
+    modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
+    int itp = it - 1;
+    if( itp >=0){
+      for(int ix=0;ix<nx;ix++)
+	u2[ix+pml][szpml] += vt2[ix+pml][szpml]*sou[ix][itp];
+    }
+    processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u2,u1,u0);
+    LOOP
+      u2[ix][iz] = u2[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]); 
+    
+    LOOP
+      lap[ix][iz] = (u2[ix][iz] +u0[ix][iz] -2*u1[ix][iz])*dt2;
+    
+    modeling2D_high(u0b,u1b,u2b,vvzz,vvxx,nzpml,nxpml);
+      LOOP
+	u2b[ix][iz] +=vt2[ix][iz] * lap[ix][iz]*vel3pml[ix][iz]*dvpml[ix][iz];
+      
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21b,u2b,u1b,u0b);
+      LOOP
+	u2b[ix][iz] = u2b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]); 
+      itp = it - ndel;
+      if(itp >=0)
+	for(int ix=0;ix<nx;ix++){
+	  int iz          = gzpml;
+	  rec[ix][itp]    = u2b[ix+pml][iz];
+	}
+      float ** tp = u0;
+      u0 = u1;
+      u1 = u2;
+      u2 = tp;
+      float ** tpb = u0b;
+      u0b = u1b;
+      u1b = u2b;
+      u2b = tpb;
+    }
+  MyAlloc<float>::free(u0);
+  MyAlloc<float>::free(u1);
+  MyAlloc<float>::free(u2);
+  MyAlloc<float>::free(u0b);
+  MyAlloc<float>::free(u1b);
+  MyAlloc<float>::free(u2b);
+  MyAlloc<float>::free(w2d);
+  MyAlloc<float>::free(u21);
+  MyAlloc<float>::free(u21b);
+  MyAlloc<float>::free(vvzz);
+  MyAlloc<float>::free(vvxx);
+  MyAlloc<float>::free(velpml);
+  MyAlloc<float>::free(vel3pml);
+  MyAlloc<float>::free(vt2);
+  MyAlloc<float>::free(lap);
+  MyAlloc<float>::free(dvpml);
+  return rec;
+}
 float ** illum(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, float * wav, float **vel)
 {
   int nzpml = nz + 2*pml;
@@ -411,6 +508,8 @@ float ** adjointPlane2(float dt, float dx, float dz, int nt, int ndel, int nx, i
     vel3pml[ix][iz] = 2.0f/(velpml[ix][iz]*velpml[ix][iz]*velpml[ix][iz]);
   // receiver side back propagating
   for(int it=NT-1;it>=0;it--){
+	  if(it%100==0)
+		cout<<NT-it<<endl;
     int itp= it-ndel;
     modeling2D_high(u2b,u1b,u0b,vvzz,vvxx,nzpml,nxpml);
     if(itp>=0);
@@ -436,6 +535,8 @@ float ** adjointPlane2(float dt, float dx, float dz, int nt, int ndel, int nx, i
   //opern(u0b,VALUE,nzpml,nxpml,0.0f);
   for(int it=2;it<NT;it++)
     {
+		if(it%100==0)
+		cout<<it<<endl;
       // source side propagation
       modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
       int itp = it - 1;

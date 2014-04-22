@@ -3,6 +3,7 @@
 float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel );
 float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** dv );
 float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec);
+float ** forwordPlane(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **dv);
 float ** adjointPlane(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **rec);
 float ** adjointPlane2(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **rec);
 float ** rtm_true(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec);
