@@ -339,12 +339,10 @@ void shiftFFT(float * in, float * out, int nt, int shift)
 }
 void shiftSimple(float **in, float **out, int nt, int nx, int m)
 {
-	opern(out,VALUE,nt,nx,0.0f);
-	for(int ix = 0; ix<nx;ix++){
-		for(int it=0;it<nt;it++){
-			int index = it - m;
-			if(index>=0 && index < nt)
-			out[ix][it] = in[ix][index];
-		}
-	}
+  //opern(out,VALUE,nt,nx,0.0f);
+  memset(&(out[0][0]),0,sizeof(float)*nt*nx);
+  int indexMin = m;
+  int signalLength = nt-m;
+  for(int ix = 0; ix<nx;ix++)
+    memcpy(&out[ix][indexMin], &in[ix][0], sizeof(float)*signalLength);
 }

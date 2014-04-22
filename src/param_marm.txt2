@@ -3,9 +3,9 @@ nthread   4
 planeTag  1
 ns        500
 ngmax     2299
-np        93
-pmin      -1.15
-dp        0.026666
+np        100
+pmin      -0.66 
+dp        0.0132
 nx        2301
 nz        751
 nt        8000

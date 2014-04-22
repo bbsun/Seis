@@ -21,6 +21,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+using std::to_string;
 #define verbose      true
 #define FALSE false
 Inversion::Inversion(int rank, int nprocs)
@@ -347,7 +348,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
 	    float ** imgsub = adjoint ( dt,  dx , dz, nt, delaycal, nxsub, nzsub, npml,  sx, sz, igz, wav, velsub, recsub);
 	    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
 	    swapModel(imgsub, imgtmp, velfxsub, velfx, nzsub,nxsub, nz,nx, false);
-	    string imgfile = obtainImageName(is);
+	    string imgfile = obtainNameDat(param.wdir.val,"CSG_IMAGE",is);
 	    if(param.mask.val){
 	    read(param.maskfile.val,nz,nx,mask);
 	    opern(imgtmp,imgtmp,mask,MUL,nz,nx);
@@ -378,7 +379,7 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
     opern(img,VALUE, nz , nx,0.0f);
     float ** imgtmp = MyAlloc<float>::alc(nz,nx);
     for( int is=0; is<ns; is++){
-      string imgfile = obtainImageName(is);
+      string imgfile = obtainNameDat(param.wdir.val,"CSG_IMAGE",is);
       read(imgfile,nz,nx,imgtmp);
       opern(img,imgtmp,img,ADD,nz,nx);
     }
@@ -718,6 +719,101 @@ void Inversion::masterRun(int ns)
   MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MyAlloc<int>::free(done);
 }
+void Inversion::planeWavePrepare()
+{
+  if(rank==0)
+    {
+       
+      int nx   = param.nx.val;
+      int nz   = param.nz.val;
+      int nt   = param.nt.val;
+      int delay    = param.delay.val;
+      int delaycal = param.delaycal.val;
+      int ngmax = param.ngmax.val;
+      float dt  = param.dt.val;
+      float dx  = param.dx.val;
+      float dz  = param.dz.val;
+      float fr  = param.fr.val;
+      float NT  = nt + delaycal;
+      float velfx = param.velfx.val;
+     float ** sou=MyAlloc<float>::alc(NT,nx);
+       float ** rec=MyAlloc<float>::alc(nt,nx);
+       float ** tr =MyAlloc<float>::alc(nt,nx);
+       float **CSGN=MyAlloc<float>::alc(nt,ngmax);
+      int ns    = param.ns.val;
+      int ds    = ns;
+      float *** data = MyAlloc<float>::alc(nt,ngmax,ds);
+      for(int i = 0; i<1;i++){
+	cout<<"read"<<endl;
+	for(int j=0; j<ds ;j++){
+	  int index = j + i*ds;
+	  if(index<ns);{
+	    cout<<index<<" ,";
+	    string file = obtainCSGName(index);
+	    read(file,nt,ng[index],data[j]);
+	  }
+	}
+	cout<<"read finish"<<endl;
+	 
+	  for(int is=0;is<param.np.val;is++)
+	    {
+	      opern(sou,VALUE,NT,nx,0.0f);
+	      opern(rec,VALUE,nt,nx,0.0f);
+	      int nx   = param.nx.val;
+	      int nz   = param.nz.val;
+	      int nt   = param.nt.val;
+	      int delay    = param.delay.val;
+	      int delaycal = param.delaycal.val;
+	      int ngmax = param.ngmax.val;
+	      float dt  = param.dt.val;
+	      float dx  = param.dx.val;
+	      float dz  = param.dz.val;
+	      float fr  = param.fr.val;
+	      float NT  = nt + delaycal;
+	      float velfx = param.velfx.val;
+	      float p     = param.pmin.val + is * param.dp.val;
+	      float velmin = velfx-0.0001*dx;
+	      float velmax = velfx + (nx-1)*dx+0.0001*dx;
+	      float * wav  = rickerWavelet(dt,fr,0,NT);
+	      float * tw   = MyAlloc<float>::alc(NT);
+	      cout<<"  ip "<< is << "  p : "<< p << endl; 
+	      for(int ishot = 0; ishot < ds ; ishot ++){
+		float sx = sc[ishot][0];
+		check((sx-velmin)>=0 && (velmax-sx)>=0,"sx must be in the range [velmin,velmax]");
+		float distance = (p>0)? (sx -velmin): (velmax -sx);
+		int idts = distance*sqrt(p*p)/dt +delay + delaycal;
+		int idtr = distance*sqrt(p*p)/dt ;
+		shiftFFT(wav,tw,NT,idts);
+		int isx = (sx - velmin)/dx + 0.0001f;
+		check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
+		opern(sou[isx],sou[isx],tw,ADD,NT);
+		// process receivers
+		int checkl = (idtr % (nt*2));
+		if( checkl>=0 && checkl<nt)
+		  shiftSimple(data[ishot],CSGN,nt,ng[ishot],checkl);
+		else
+		  opern(CSGN,VALUE,nt,ng[ishot],0.0f);
+		swapReord( CSGN, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
+		opern(rec,tr,rec,ADD,nt,nx);
+	      }
+	      cout<<"finishe"<<endl;
+	      string sfile = obtainNameDat(param.wdir.val,"PLANE_S_NEW",is);
+	      string rfile = obtainNameDat(param.wdir.val,"PLANE_R_NEW",is);
+	      write(sfile,NT,nx,sou);
+	      write(rfile,nt,nx,rec);		
+	      MyAlloc<float>::free(wav);
+	      MyAlloc<float>::free(tw);
+	    }
+	 
+	}
+	 MyAlloc<float>::free(sou);
+	  MyAlloc<float>::free(rec);
+	  MyAlloc<float>::free(tr) ;
+	  MyAlloc<float>::free(CSGN);
+	MyAlloc<float>::free(data);
+    }
+  MPI_Barrier(MPI_COMM_WORLD);
+}
  void Inversion::planeWavePrepare_MPI()
  {
 	 check(param.planeTag.val,"in param planeTag must be true(none zero) to use subroutine planeWavePrepare");
@@ -770,6 +866,8 @@ void Inversion::masterRun(int ns)
 	    cout<<"  ip "<< is << "  p : "<< p << endl; 
 	    for(int ishot = 0; ishot < param.ns.val ; ishot ++)
 	    {
+			if(rank==1)
+			cout<<ishot<<endl;
 			// process source
 			float sx = sc[ishot][0];
 			
@@ -869,8 +967,8 @@ void  Inversion::adjointPlane_MPI( float ** img, int migTag){
 	read(recfile,nt,nx,rec);
 	int sz = (sc[0][1]-0.0f)/dz + 0.0001f;
 	int gz = (gc[0][1][0]-0.0f)/dz + 0.0001f;
-	cout<< " ip  "<< is <<" sz "<< sc[0][1] << " gz "<< gc[0][1][0] <<endl;
-	float ** imgX = adjointPlane( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou, rec);
+	cout<< " p  "<< param.pmin.val + is * param.dp.val <<" sz "<< sc[0][1] << " gz "<< gc[0][1][0] <<endl;
+	float ** imgX = adjointPlane2( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou, rec);
 	string imgfile = obtainImageName(is);
 	if(param.mask.val){
 	  read(param.maskfile.val,nz,nx,mask);
@@ -949,11 +1047,12 @@ void Inversion::test()
       //forward_MPI(dv);
       //exit(0);
       //modeling_MPI(v);
-      planeWavePrepare_MPI();
+      //planeWavePrepare();
+      //planeWavePrepare_MPI();
       adjointPlane_MPI(img,RTM_IMG);
-     // writeSu("illum.su",nz,nx,img);
-      //adjoint_MPI(img,LSRTM_STEP);
-      writeSu("imgPlane.su",nz,nx,img);
+      writeSu("imagPlane.su",nz,nx,img);
+      adjoint_MPI(img,RTM_IMG);
+      //writeSu("imgShot.su",nz,nx,img);
       // test of moving
       if(false){
       string csgfile = obtainCSGName(1);
