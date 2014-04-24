@@ -3,8 +3,8 @@ nthread   4
 planeTag  1
 ns        500
 ngmax     2299
-np        100
-pmin      -0.66 
+np        50
+pmin      -0.3 
 dp        0.0132
 nx        2301
 nz        751
@@ -19,7 +19,7 @@ rpad 2
 dx 0.004
 dz 0.004
 dt 0.0004
-fr 20
+fr 22
 velfx 0.0
 precsg     /home/sunbb/sh/datatemp/marm/CSG2/CSG
 wdir       /home/sunbb/sh/datatemp/marm/WDIR2/

@@ -754,7 +754,12 @@ void Inversion::planeWavePrepare()
 	  }
 	}
 	cout<<"read finish"<<endl;
-	 
+	float sxmax=sc[0][0];
+	for(int iss=1;iss<param.ns.val;iss++)
+	  {
+	    sxmax = sxmax<sc[iss][0] ? sc[iss][0]: sxmax; 
+	  }
+	cout<<"sxmax "<<sxmax <<" ix:" << sxmax/dx << endl;
 	  for(int is=0;is<param.np.val;is++)
 	    {
 	      opern(sou,VALUE,NT,nx,0.0f);
@@ -773,7 +778,7 @@ void Inversion::planeWavePrepare()
 	      float velfx = param.velfx.val;
 	      float p     = param.pmin.val + is * param.dp.val;
 	      float velmin = velfx-0.0001*dx;
-	      float velmax = velfx + (nx-1)*dx+0.0001*dx;
+	      float velmax = sxmax;
 	      float * wav  = rickerWavelet(dt,fr,0,NT);
 	      float * tw   = MyAlloc<float>::alc(NT);
 	      cout<<"  ip "<< is << "  p : "<< p << endl; 
@@ -1047,11 +1052,11 @@ void Inversion::test()
       //forward_MPI(dv);
       //exit(0);
       //modeling_MPI(v);
-      //planeWavePrepare();
+       planeWavePrepare();
       //planeWavePrepare_MPI();
-      adjointPlane_MPI(img,RTM_IMG);
-      writeSu("imagPlane.su",nz,nx,img);
-      adjoint_MPI(img,RTM_IMG);
+       adjointPlane_MPI(img,RTM_IMG);
+       writeSu("imagPlane2.su",nz,nx,img);
+      //adjoint_MPI(img,RTM_IMG);
       //writeSu("imgShot.su",nz,nx,img);
       // test of moving
       if(false){
