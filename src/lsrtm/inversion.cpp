@@ -1012,7 +1012,66 @@ void  Inversion::adjointPlane_MPI( float ** img, int migTag){
 }
 void Inversion::test()
 {
-  bool modeling_test=true;
+  bool modeling_test=false;
+  bool planewavemigrationtest = true;
+  // test of the plane wave migration
+  if(planewavemigrationtest)
+  {
+	  int nt = 3000;
+	  int nx = 1800*5;
+	  int nz = 300;
+	  int sz = 4;
+	  int gz = 4;
+	  float dt = 0.0016;
+	  float dx = 0.01;
+	  float dz = 0.01;
+	  int delay = 10;
+	  int delaycal = 100;
+	  float fr = 20;
+	  int NT = nt + delaycal;
+	  float ** sou = MyAlloc<float>::alc(NT,nx);
+	  float theta = 80;
+	  float **    v= MyAlloc<float>::alc(nz,nx);
+	  float **   v0= MyAlloc<float>::alc(nz,nx);
+	  float **   dv= MyAlloc<float>::alc(nz,nx);
+	  float **  rec= MyAlloc<float>::alc(nt,nx);
+	  float * wav = rickerWavelet( dt,  fr, 0, NT);
+	  for(int ix = 0; ix<nx;ix++)
+	  for(int iz = 0; iz<nz;iz++)
+	  {
+		  if(iz>=0 && iz<1.0f/2*nz)
+		  v[ix][iz] = 2.0;
+		  if(iz>=nz/2 && iz <nz*4.0f/5)
+		  v[ix][iz] = 2.5f;
+		  if(iz>=nz*2.0f/3)
+		  v[ix][iz] = 2.5f;
+	  }
+	  writeSu("v.su",nz,nx,v);
+	  Smooth::smooth2d1(v,v0,nz,nx,10);
+	  opern(dv,v,v0,SUB,nz,nx);
+	  writeSu("v0.su",nz,nx,v0);
+	  writeSu("v1.su",nz,nx,dv);
+	  float p     = sin(theta*3.1415926/180)/v[0][0];
+	  cout<<"p"<< p <<endl;
+	  for(int ix = 0; ix<nx;ix++){
+		   int mxx = (int)(ix*dx*p/dt) + delay + delaycal;
+		   shiftFFT(wav,sou[ix],NT,mxx);
+		   int myyX = (ix*dx*p/dt + delay+delaycal);
+		   int myy = myyX %(2*NT);
+		   cout<<myyX <<" % " <<myy <<endl;
+		   //if(myy>=NT)
+		   //opern(sou[ix],VALUE,NT,0.0f);
+		   
+		  }
+	   writeSu("source.su",NT,nx,sou);
+	   OMP_CORE = 4;
+	  rec= forwordPlane(dt, dx, dz, nt, delaycal, nx, nz, 20, sz, gz, v0, sou, dv);
+	  writeSu("rec.su",nt,nx,rec);
+	  write("rec.dat",nt,nx,rec);
+	  read("rec.dat",nt,nx,rec);
+	  float ** img = adjointPlane2(dt,dx,dz,nt,delaycal,nx,nz,20,sz,gz,v0,sou,rec);
+	  writeSu("img.su",nz,nx,img);
+  }
   if(modeling_test)
     {
       int nx = param.nx.val;

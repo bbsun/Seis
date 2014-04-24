@@ -81,7 +81,7 @@ void test()
   int sx = nx/2;
   int sz = 0;
   int pml = 30;
-  float dt = 0.0003f;
+  float dt = 0.0001f;
   float dx = 7.62f*3.5567;
   float dz = 7.62f*2;
   int * igz = MyAlloc<int> :: alc(nx);
