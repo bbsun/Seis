@@ -47,9 +47,9 @@ void test()
     float * wav=rickerWavelet(0.0001,20,0,10000);
     writeSu("wav.su",10000,wav);
     float * shiftwav=MyAlloc<float>::alc(10000);
-    shift(wav,shiftwav,10000,2000);
+    //shift(wav,shiftwav,10000,2000);
     writeSu("wavshift.su",10000,shiftwav);
-    shiftFFT(wav,shiftwav,10000,2000);
+    //shiftFFT(wav,shiftwav,10000,2000);
     writeSu("wavshiftFFT.su",10000,shiftwav);
     exit(0);
   }

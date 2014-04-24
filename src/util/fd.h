@@ -5,7 +5,6 @@ float ** forward (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
 float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec);
 float ** forwordPlane(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **dv);
 float ** adjointPlane(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **rec);
-float ** adjointPlane2(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sz,int gz, float **vel,float **sou,float **rec);
 float ** rtm_true(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec);
 float ** illum(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz , float * wav, float **vel);
 void processBoundary(float dt, float dx,float dz,int nx,int nz,int pml, float ** velpml,float ** u31,float ** u3,float ** u2,float ** u1);

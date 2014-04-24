@@ -788,14 +788,14 @@ void Inversion::planeWavePrepare()
 		float distance = (p>0)? (sx -velmin): (velmax -sx);
 		int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 		int idtr = distance*sqrt(p*p)/dt ;
-		shiftFFT(wav,tw,NT,idts);
+		//shiftFFT(wav,tw,NT,idts);
 		int isx = (sx - velmin)/dx + 0.0001f;
 		check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 		opern(sou[isx],sou[isx],tw,ADD,NT);
 		// process receivers
 		int checkl = (idtr % (nt*2));
-		if( checkl>=0 && checkl<nt)
-		  shiftSimple(data[ishot],CSGN,nt,ng[ishot],checkl);
+		if( checkl>=0 && checkl<nt) ;
+		  //shiftSimple(data[ishot],CSGN,nt,ng[ishot],checkl);
 		else
 		  opern(CSGN,VALUE,nt,ng[ishot],0.0f);
 		swapReord( CSGN, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
@@ -880,7 +880,7 @@ void Inversion::planeWavePrepare()
 			float distance = (p>0)? (sx -velmin): (velmax -sx);
 			int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 			int idtr = distance*sqrt(p*p)/dt ;
-			shiftFFT(wav,tw,NT,idts);
+			//shiftFFT(wav,tw,NT,idts);
 			int isx = (sx - velmin)/dx + 0.0001f;
 			check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 			opern(sou[isx],sou[isx],tw,ADD,NT);
@@ -888,8 +888,8 @@ void Inversion::planeWavePrepare()
 			string CSGfile = obtainCSGName(ishot);
 			read(CSGfile,nt,this->ng[ishot],CSG);
 			int check = (idtr % (nt*2));
-			if( check>=0 && check<nt)
-				shiftSimple(CSG,CSGN,nt,ng[1],check);
+			if( check>=0 && check<nt) ;
+			  //shiftSimple(CSG,CSGN,nt,ng[1],check);
 			else
 				opern(CSGN,VALUE,nt,ng[1],0.0f);
 			//shift(CSG,CSG,nt,this->ng[ishot],idtr);
@@ -973,7 +973,7 @@ void  Inversion::adjointPlane_MPI( float ** img, int migTag){
 	int sz = (sc[0][1]-0.0f)/dz + 0.0001f;
 	int gz = (gc[0][1][0]-0.0f)/dz + 0.0001f;
 	cout<< " p  "<< param.pmin.val + is * param.dp.val <<" sz "<< sc[0][1] << " gz "<< gc[0][1][0] <<endl;
-	float ** imgX = adjointPlane2( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou, rec);
+	float ** imgX = adjointPlane( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou, rec);
 	string imgfile = obtainImageName(is);
 	if(param.mask.val){
 	  read(param.maskfile.val,nz,nx,mask);
@@ -1055,7 +1055,7 @@ void Inversion::test()
 	  cout<<"p"<< p <<endl;
 	  for(int ix = 0; ix<nx;ix++){
 		   int mxx = (int)(ix*dx*p/dt) + delay + delaycal;
-		   shiftFFT(wav,sou[ix],NT,mxx);
+		   // shiftFFT(wav,sou[ix],NT,mxx);
 		   int myyX = (ix*dx*p/dt + delay+delaycal);
 		   int myy = myyX %(2*NT);
 		   cout<<myyX <<" % " <<myy <<endl;
@@ -1069,7 +1069,7 @@ void Inversion::test()
 	  writeSu("rec.su",nt,nx,rec);
 	  write("rec.dat",nt,nx,rec);
 	  read("rec.dat",nt,nx,rec);
-	  float ** img = adjointPlane2(dt,dx,dz,nt,delaycal,nx,nz,20,sz,gz,v0,sou,rec);
+	  float ** img = adjointPlane(dt,dx,dz,nt,delaycal,nx,nz,20,sz,gz,v0,sou,rec);
 	  writeSu("img.su",nz,nx,img);
   }
   if(modeling_test)
@@ -1098,8 +1098,8 @@ void Inversion::test()
 	cout<< i <<" "<<ng[1]<<endl;
       //shift(CSG,CSGN,nt,ng[1],i);
       int check = (i % (nt*2));
-      if( check>=0 && check<nt)
-      shiftSimple(CSG,CSGN,nt,ng[1],check);
+      if( check>=0 && check<nt);
+      //shiftSimple(CSG,CSGN,nt,ng[1],check);
       else
       opern(CSGN,VALUE,nt,ng[1],0.0f);
       string file = obtainNameDat(param.wdir.val,"xx",i);
