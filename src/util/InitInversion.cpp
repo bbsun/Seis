@@ -138,3 +138,13 @@ void SumSpray(float ** f, int n1, int n2)
 	}
 
 }
+void harmonic(float *in, float * out, int nt, float kx,float x)
+{
+	float cn = cos(kx*x);
+	float sn = sin(kx*x);
+	Hilbert<float> hl(100);
+	hl.apply(in,out,nt);
+	for(int it=0;it<nt;it++){
+		out[it] = cn*in[it] - sn*out[it];
+	}
+}

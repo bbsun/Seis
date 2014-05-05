@@ -283,6 +283,80 @@ void  Inversion::illum_MPI( float ** ss)
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&ss[0][0], param.nz.val*param.nx.val,MPI_FLOAT,0,MPI_COMM_WORLD); 
 }
+void  Inversion::illumPlane_MPI( float ** ss)
+{
+ 
+  string v0file = param.v0file.val;
+  float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
+  read(v0file,param.nz.val,param.nx.val,v0);
+  if(rank==0)
+    cout<<"illumPlane"<<endl;
+  int is=0;
+  int idone = 0;
+  int itotal= 0;
+  int myid = rank;
+  int ns  =  param.np.val;
+  MPI_Status  status;
+  if(rank==0)
+    masterRun(ns);
+  else
+    {
+      is = -1;
+      MPI_Send(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);            //ask for a shot 
+      while (is < ns) 
+	{
+	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
+	  if(is >=0 && is < ns){
+	    idone++;
+	    int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+		int nt   = param.nt.val;
+		int npml     = param.npml.val;
+		int delaycal = param.delaycal.val;
+		float dt  = param.dt.val;
+		float dx  = param.dx.val;
+		float dz  = param.dz.val;
+		float fr  = param.fr.val;
+		string wdir = param.wdir.val;
+		int NT = nt + delaycal;
+		float ** sou = MyAlloc<float>::alc(NT,nx);
+		string soufile;
+		soufile  = obtainNameDat(param.wdir.val,"PLANE_S_NEW",is);
+		read(soufile,NT,nx,sou);
+		int sz = (sc[0][1]-0.0f)/dz + 0.0001f;
+		int gz = (gc[0][1][0]-0.0f)/dz + 0.0001f;
+		cout<< " p  "<< param.pmin.val + is * param.dp.val <<" sz "<< sc[0][1] << " gz "<< gc[0][1][0] <<endl;
+	    float ** illumX = illumPlane( dt, dx, dz,  nt,  delaycal,  nx,  nz,  npml, sz, gz, v0, sou);
+	    string ssfile = obtainNameDat(param.wdir.val,"ILLUM_PLANE",is);
+	    write(ssfile,nz,nx,illumX);
+	    MyAlloc<float>::free(sou);
+	    MyAlloc<float>::free(illumX);
+	    sleep(2); 
+	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
+	  } else {
+	    MPI_Send(&idone, 1, MPI_INT, 0, 2, MPI_COMM_WORLD); 
+	    // fprintf(stderr,"Slave=%d Finshed, waiting for exit \n", myid);
+	  }
+	}
+      MPI_Reduce(&idone, &itotal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+  MyAlloc<float>::free(v0);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(rank==0){	
+    int nx   = param.nx.val;
+    int nz   = param.nz.val;
+    opern(ss,VALUE, nz , nx,0.0f);
+    float ** sstmp = MyAlloc<float>::alc(nz,nx);
+    for( int is=0; is<ns; is++){
+      string ssfile = obtainNameDat(param.wdir.val,"ILLUM_PLANE",is);
+      read(ssfile,nz,nx,sstmp);
+      opern(ss,sstmp,ss,ADD,nz,nx);
+    }
+    MyAlloc<float>::free(sstmp);
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Bcast(&ss[0][0], param.nz.val*param.nx.val,MPI_FLOAT,0,MPI_COMM_WORLD); 
+} 
 void  Inversion::adjoint_MPI( float ** img, int migTag)
 {
  
@@ -736,29 +810,29 @@ void Inversion::planeWavePrepare()
       float fr  = param.fr.val;
       float NT  = nt + delaycal;
       float velfx = param.velfx.val;
-     float ** sou=MyAlloc<float>::alc(NT,nx);
-       float ** rec=MyAlloc<float>::alc(nt,nx);
-       float ** tr =MyAlloc<float>::alc(nt,nx);
-       float **CSGN=MyAlloc<float>::alc(nt,ngmax);
+      float ** sou=MyAlloc<float>::alc(NT,nx);
+      float ** rec=MyAlloc<float>::alc(nt,nx);
+      float ** tr =MyAlloc<float>::alc(nt,nx);
+      float **CSGN=MyAlloc<float>::alc(nt,ngmax);
       int ns    = param.ns.val;
       int ds    = ns;
       float *** data = MyAlloc<float>::alc(nt,ngmax,ds);
       for(int i = 0; i<1;i++){
-	cout<<"read"<<endl;
-	for(int j=0; j<ds ;j++){
-	  int index = j + i*ds;
-	  if(index<ns);{
-	    cout<<index<<" ,";
-	    string file = obtainCSGName(index);
-	    read(file,nt,ng[index],data[j]);
-	  }
-	}
-	cout<<"read finish"<<endl;
-	float sxmax=sc[0][0];
-	for(int iss=1;iss<param.ns.val;iss++)
-	  {
+	  cout<<"read"<<endl;
+	  for(int j=0; j<ds ;j++){
+	    int index = j + i*ds;
+	    if(index<ns);{
+	     cout<<index<<" ,";
+	     string file = obtainCSGName(index);
+	     read(file,nt,ng[index],data[j]);
+	   }
+	 }
+	 cout<<"read finish"<<endl;
+	 float sxmax=sc[0][0];
+	 for(int iss=1;iss<param.ns.val;iss++)
+	   {
 	    sxmax = sxmax<sc[iss][0] ? sc[iss][0]: sxmax; 
-	  }
+	   }
 	cout<<"sxmax "<<sxmax <<" ix:" << sxmax/dx << endl;
 	  for(int is=0;is<param.np.val;is++)
 	    {
@@ -779,25 +853,30 @@ void Inversion::planeWavePrepare()
 	      float p     = param.pmin.val + is * param.dp.val;
 	      float velmin = velfx-0.0001*dx;
 	      float velmax = sxmax;
-	      float * wav  = rickerWavelet(dt,fr,0,NT);
+	      float * wav  = rickerWavelet(dt,fr,delay+delaycal,NT);
 	      float * tw   = MyAlloc<float>::alc(NT);
-	      cout<<"  ip "<< is << "  p : "<< p << endl; 
-	      for(int ishot = 0; ishot < ds ; ishot ++){
+	    cout<<"  ik "<< is << "  k_x : "<< p << endl; 
+	    for(int ishot = 0; ishot < ds ; ishot ++){
 		float sx = sc[ishot][0];
 		check((sx-velmin)>=0 && (velmax-sx)>=0,"sx must be in the range [velmin,velmax]");
 		float distance = (p>0)? (sx -velmin): (velmax -sx);
 		int idts = distance*sqrt(p*p)/dt +delay + delaycal;
 		int idtr = distance*sqrt(p*p)/dt ;
 		//shiftFFT(wav,tw,NT,idts);
-		int isx = (sx - velmin)/dx + 0.0001f;
+		harmonic(wav, tw, NT, p, sx);
+		int isx = (sx - velfx)/dx + 0.001f;
 		check(isx>=0 && isx<nx, "isx must be in the range [0 nx) in planeWavePrepare");
 		opern(sou[isx],sou[isx],tw,ADD,NT);
 		// process receivers
-		int checkl = (idtr % (nt*2));
-		if( checkl>=0 && checkl<nt) ;
-		  //shiftSimple(data[ishot],CSGN,nt,ng[ishot],checkl);
-		else
-		  opern(CSGN,VALUE,nt,ng[ishot],0.0f);
+		#ifdef _OPENMP
+  (void) omp_set_dynamic(0);
+  if (omp_get_dynamic()) {printf("Warning: dynamic adjustment of threads has been set\n");}
+  (void) omp_set_num_threads(20);
+#endif
+#pragma omp parallel for
+  for(int igg=0;igg<ng[ishot];igg++){
+    harmonic(data[ishot][igg],CSGN[igg],nt,p,sx);
+  }
 		swapReord( CSGN, ishot, this->ng[ishot], nt, tr, velfx, nx, false );
 		opern(rec,tr,rec,ADD,nt,nx);
 	      }
@@ -811,7 +890,7 @@ void Inversion::planeWavePrepare()
 	    }
 	 
 	}
-	 MyAlloc<float>::free(sou);
+	  MyAlloc<float>::free(sou);
 	  MyAlloc<float>::free(rec);
 	  MyAlloc<float>::free(tr) ;
 	  MyAlloc<float>::free(CSGN);
@@ -1012,8 +1091,8 @@ void  Inversion::adjointPlane_MPI( float ** img, int migTag){
 }
 void Inversion::test()
 {
-  bool modeling_test=false;
-  bool planewavemigrationtest = true;
+  bool modeling_test=true;
+  bool planewavemigrationtest = false;
   // test of the plane wave migration
   if(planewavemigrationtest)
   {
@@ -1106,15 +1185,19 @@ void Inversion::test()
       write(file,nt,ng[1],CSGN);
       }
   }
+
 	  
-      //illum_MPI(img);
+      
       //forward_MPI(dv);
       //exit(0);
       //modeling_MPI(v);
-       planeWavePrepare();
+      planeWavePrepare();
       //planeWavePrepare_MPI();
-       adjointPlane_MPI(img,RTM_IMG);
-       writeSu("imagPlane2.su",nz,nx,img);
+       
+      //illumPlane_MPI(img);
+      //write("illumPlane_marm.dat",nz,nx,img);
+      //adjointPlane_MPI(img,RTM_IMG);
+       writeSu("imagPlane_marm.su",nz,nx,img);
       //adjoint_MPI(img,RTM_IMG);
       //writeSu("imgShot.su",nz,nx,img);
       // test of moving

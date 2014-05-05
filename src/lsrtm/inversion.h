@@ -57,6 +57,11 @@ class Inversion
    *@param[out] illumation compensation matrix
    */ 
    void illum_MPI(float ** ss);
+   /**
+    * iilumation compensation for harmonic migration
+    *@param[out] illumation compensation matrix 
+    */
+   void illumPlane_MPI(float **ss);
   /**
    * mpi implementation of born modeling. 
    *@param [in] dv             velocity perturbation for calculation

@@ -1,11 +1,11 @@
 
 nthread   4
 planeTag  1
-ns        500
-ngmax     2299
-np        50
-pmin      -0.3 
-dp        0.0132
+ns        2300
+ngmax     500
+np        101
+pmin     -25 
+dp        0.5
 nx        2301
 nz        751
 nt        8000
@@ -14,17 +14,17 @@ delay     10
 delaycal  500
 mask      1
 maxiter   20
-lpad 2
-rpad 2
+lpad 1000
+rpad 800
 dx 0.004
 dz 0.004
 dt 0.0004
 fr 22
 velfx 0.0
-precsg     /home/sunbb/sh/datatemp/marm/CSG2/CSG
-wdir       /home/sunbb/sh/datatemp/marm/WDIR2/
+precsg     /home/sunbb/sh/datatemp/marm/CSG3/CSG
+wdir       /home/sunbb/sh/datatemp/marm/WDIR3/
 vfile      /home/sunbb/sh/datatemp/marm/marm.bin
 v0file     /home/sunbb/sh/datatemp/marm/marmsm.dat
-coordfile /home/sunbb/sh/datatemp/marm/coords500.txt
+coordfile /home/sunbb/sh/datatemp/marm/coords2300.txt
 maskfile  /home/sunbb/sh/datatemp/marm/mask.bin
 
