@@ -43,7 +43,7 @@ float ** modeling(float dt, float dx, float dz, int nt, int ndel, int nx, int nz
   int NT = nt + ndel;
   for(int it=0;it<NT;it++)
     {
-      //if (it%1000==1)  cout<<"it="<<it<<endl ;
+      if (it%100==1)  cout<<"it="<<it<<endl ;
 	
       modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
       int itp = it - 1;
@@ -426,10 +426,10 @@ float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
       processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21b,u0b,u1b,u2b);
       LOOP
 	u0b[ix][iz] = u0b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]);
-      //LOOP
-       //imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
-      opern(lap,lap,vel3pml,MUL,nzpml,nxpml);
-      FaQi(lap,u0b,imgpml,nz,nx,pml);
+      LOOP
+       imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
+      //opern(lap,lap,vel3pml,MUL,nzpml,nxpml);
+      //FaQi(lap,u0b,imgpml,nz,nx,pml);
       float ** tp = u2;
       u2 = u1;
       u1 = u0;

@@ -2,13 +2,13 @@
 nthread   4
 planeTag  1
 ns        2300
-ngmax     500
-np        101
-pmin     -25 
+ngmax     2300
+np        201
+pmin     -50 
 dp        0.5
 nx        2301
 nz        751
-nt        8000
+nt        10000
 npml      20
 delay     10
 delaycal  500

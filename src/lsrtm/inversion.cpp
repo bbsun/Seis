@@ -709,7 +709,7 @@ void Inversion::removeDirect(float ** csg, float ** v, int is)
       int adddelay = abs((gz - sz)/dz+0.0001f);
       int  nx = param.nx.val;
       int  nz = param.nz.val;
-      adddelay +=200;
+      adddelay +=10;
       check(igz >= 0 && igz < nz, "igz in removeDirect must be within range [0 nz)");
       if(igx<=isx){
 	for(int i=igx;i<isx;i++){
@@ -1191,15 +1191,15 @@ void Inversion::test()
       //forward_MPI(dv);
       //exit(0);
       //modeling_MPI(v);
-      planeWavePrepare();
+       //planeWavePrepare();
       //planeWavePrepare_MPI();
        
-      //illumPlane_MPI(img);
-      //write("illumPlane_marm.dat",nz,nx,img);
-      //adjointPlane_MPI(img,RTM_IMG);
-       writeSu("imagPlane_marm.su",nz,nx,img);
-      //adjoint_MPI(img,RTM_IMG);
-      //writeSu("imgShot.su",nz,nx,img);
+      // illumPlane_MPI(img);
+      // write("illumPlane_simple.dat",nz,nx,img);
+       //  adjointPlane_MPI(img,RTM_IMG);
+       //writeSu("imagPlane_simple.su",nz,nx,img);
+      adjoint_MPI(img,RTM_IMG);
+      writeSu("imgShot.su",nz,nx,img);
       // test of moving
       if(false){
       string csgfile = obtainCSGName(1);

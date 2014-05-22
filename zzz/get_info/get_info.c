@@ -2,6 +2,7 @@
 #include"stdlib.h"
 #include "mysu.h"
 #include "string.h"
+#include "time.h"
 char info1[1024]="    CSP(SP)     NTR       NT        DT     XMINALL   XMAXALL   YMINALL   YMAXALL";
 char info2[1024]="        SP       NTR     BEGIN       END        SX       SY       XMIN      XMAX      YMIN      YMAX";
 long getfilesize(FILE *fp);
@@ -89,7 +90,8 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
   }
   sx=tr.sx;
   sy=tr.sy;
-  scalco = tr.scalco>0?tr.scalco:1.0/abs(tr.scalco); // normally this will not change 
+  scalco = tr.scalco>=0?tr.scalco:1.0/abs(tr.scalco); // normally this will not change 
+  scalco = 1;
   xminall=xmin;
   xmaxall=xmax;
   yminall=ymin;
@@ -103,9 +105,10 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
   sprintf(filename,"%sCSG%d.dat",dir,ishot++);
   CSGF=fopen(filename,"w");
   int itt=1;
-  sxf = tr.sx * scalco; // set sx
-  szf = 0.0f;            // set sz
-  gzf = 0.0f;
+  printf("%d",rand());
+  sxf = sx * scalco + rand()%1000*1.0/1000*2; // set sx
+  szf = 0.0f;  szf=tr.selev;          // set sz
+  gzf = 0.0f;  gzf=tr.gelev;
   fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
   int size_trace_data = nt*4;
   fseek(infp,POS,0);//指针指向文件开始
@@ -115,6 +118,7 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
   
   //读su文件
   do {
+    
     POS+=nseek;//指针指向下一道道头位置
     fseek(infp,POS,0);//指针指向文件开始
     fread(&tr,1,240,infp);//读取240道头信息到结构体tr中
@@ -143,9 +147,9 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
       {
         shotnumber++;//统计总炮数
 	olds=*shot;
-	sxf = (tr.sx) * scalco; // set sx
-	szf = 0.0;          //   set sz
-	gzf = 0.0;
+	sxf = tr.sx * scalco + rand()%1000*1.0/1000*2; // set sx
+	szf = 0.0f;  szf=tr.selev;          // set sz
+	gzf = 0.0f;  gzf=tr.gelev;
 	fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
 	if(maxntr<ntr-1)
 	  maxntr=ntr-1;

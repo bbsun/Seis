@@ -36,13 +36,14 @@ int main(int argc, char *argv[], char *envp[])
   inv.getConfig();
   inv.test();
   //--stop mp
+  //test();
   MPI_Finalize();
   
   return 0;
 }
 void test()
 {
-  if(true){
+  if(false){
     cout<<"test of the time shift"<<endl;
     float * wav=rickerWavelet(0.0001,20,0,10000);
     writeSu("wav.su",10000,wav);
@@ -75,29 +76,36 @@ void test()
       cout<<" test of modeling " << endl;
     }
   }
-  int nt = 3500*2*2; // 14000
-  int nx=150*2;
-  int nz = 400;
+  int nt = 20000; // 14000
+  int nx=  2807;
+  int nz = 1500;
   int sx = nx/2;
-  int sz = 0;
-  int pml = 30;
-  float dt = 0.0001f;
-  float dx = 7.62f*3.5567;
-  float dz = 7.62f*2;
+  int sz = 300;
+  int pml = 20;
+  float dt = 0.0004f;
+  float dx = 15;
+  float dz = 10;
   int * igz = MyAlloc<int> :: alc(nx);
   float ** v0=MyAlloc<float>::alc(nz,nx);
   float **  v=MyAlloc<float>::alc(nz,nx); 
   float **dv =MyAlloc<float>::alc(nz,nx);
-  float    fr = 20.0f;
-  int delay = 100;
-  int delaycal = 100;
+  float    fr = 15.0f;
+  int delay =   0;
+  int delaycal = 500;
   int NT = nt + delaycal;
   int numdelay = delay + delaycal;
   float * wav = rickerWavelet(dt,fr,numdelay,NT);
   //corWavelet2D(wav,dt,NT);
   float ** rec1 = MyAlloc<float>::alc(nt,nx);
-  OMP_CORE = 3;
-  opern(igz,VALUE,nx,6);
+  OMP_CORE = 30;
+  read("/home/sunbb/sh/ch/veltest.dat",nz,nx,v);
+  
+  opern(igz,VALUE,nx,200);
+  rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
+  write("rec.bin",nt,nx,rec1);
+  exit(0);
+
+  
   opern(v,VALUE,nz,nx,4500.0f);
   opern(v0,VALUE,nz,nx,4000.0f);
   for(int ix=0;  ix<nx;ix++)

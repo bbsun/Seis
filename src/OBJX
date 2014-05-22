@@ -8,6 +8,7 @@ OBJ = lsrtm/lsrtm.o \
     util/InitInversion.o\
     util/global.o \
     util/wavelet.o \
+    filter/taup.o \
     filter/fft.o \
     filter/dct.o \
     filter/smooth.o \
