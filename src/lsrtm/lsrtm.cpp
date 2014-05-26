@@ -16,6 +16,7 @@
 #include "inversion.h"
 #include "../filter/dct.h"
 #include "../filter/smooth.h"
+#include "../filter/taup.h"
 using std::string;
 using std::ifstream;
 using std::cout;
@@ -31,18 +32,46 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
-  Inversion inv(rank,nprocs);
-  inv.readParamFile(argv[1]);
-  inv.getConfig();
-  inv.test();
+  //Inversion inv(rank,nprocs);
+  //inv.readParamFile(argv[1]);
+  //inv.getConfig();
+  //inv.test();
   //--stop mp
-  //test();
-  MPI_Finalize();
+  test();
   
+  MPI_Finalize();
   return 0;
 }
 void test()
 {
+  if(true){
+    cout<<"test of the radon transform "<<endl;
+    cout<<"large memory required "<<endl;
+    int nt = 2000;
+    int nx = 401;
+    int np = 80;
+	float dx = 10.0f/1000;
+	float dt = 0.001;
+	float p0 = -0.362f;
+	float dp = 0.01f;
+	float x0 = -200*dx;
+    float ** rec = MyAlloc<float>::alc(nt,nx);
+    float ** A   = MyAlloc<float>::alc(nt,np);
+    read("/home/sunbb/sh/WEMVA/rec.bin",nt,nx,rec);
+    for(int ix = 0;ix<200;ix++)
+		opern(rec[ix],VALUE,nt,0.0f);
+    Taup taup(dt,  nt, x0, dx,  nx, p0,  dp,  np );
+    //Taup::apply(rec,A,false,dt,nt,x0,dx,nx,p0,dp,np);
+    taup.apply(rec,A,false);
+    write("/home/sunbb/sh/WEMVA/rec_mute.bin",nt,nx,rec);
+    write("/home/sunbb/sh/WEMVA/a_2000_80.bin",nt,np,A);
+    for(int ix=0;ix<nx;ix++)
+		opern(rec[ix],VALUE,nt,0.0f);
+    //Taup::apply(rec,A,true,dt,nt,x0,dx,nx,p0,dp,np);
+    taup.apply(rec,A,true);
+    write("/home/sunbb/sh/WEMVA/at_2000_80.bin",nt,nx,rec);
+    exit(0);
+  }
   if(false){
     cout<<"test of the time shift"<<endl;
     float * wav=rickerWavelet(0.0001,20,0,10000);
