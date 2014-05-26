@@ -141,8 +141,10 @@ void getinfo(char *infile,char *outfile,char*outfile_coord,char*dir,char *key)
     itt = *shot!=olds?1:itt;
 
     if(k<=traceall-1)
-      if((*shot)==olds)
+      if((*shot)==olds){
+	 gzf = 0.0f;  gzf=tr.gelev;
 	fprintf(outcord,"%12.2f %12.2f %12.2f %12.2f\n",sxf,szf,tr.gx*scalco,gzf);
+      }
     if(*shot!=olds)//判断是否到了下一炮
       {
         shotnumber++;//统计总炮数
