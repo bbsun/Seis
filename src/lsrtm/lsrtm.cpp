@@ -32,10 +32,10 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
-  //Inversion inv(rank,nprocs);
-  //inv.readParamFile(argv[1]);
-  //inv.getConfig();
-  //inv.test();
+	Inversion inv(rank,nprocs);
+	inv.readParamFile(argv[1]);
+	inv.getConfig();
+	inv.test();
   //--stop mp
   test();
   

@@ -100,6 +100,9 @@ void Inversion::getConfig()
     int * ng=0;
     cord->countReceivers(CoordFileName,ns,ng);
     int ngmax = max(ng,ns);
+    int ngmin = min(ng,ns);
+    cout<<"ngmax = " << ngmax << " from scanning "<<endl;
+    cout<<"ngmin = " << ngmin << " from scanning "<<endl;
     if(ngmax!=param.ngmax.val) {
       error(" error : ngmax ");
       cout<<endl;
@@ -597,20 +600,39 @@ int*  Inversion::getIgz ( float velfx, int nx ,int is)
   float x_max = velfx + (nx -1 ) * dx +0.001*dx;
   int NZ = param.nz.val;
   for( int ix = 0; ix < nx ; ix++ )
-      igz[ix] = 3;
+      igz[ix] = 0;
   
   for( int ig = 0; ig < ng[is]; ig++){
     float x = gc[is][0][ig];
     float z = gc[is][1][ig];
     if( x>= x_min && x<= x_max){
-      int xloc = (x - x_min )/dx + 0.0001;
-      int zloc = (z - 0.0f) /dz+0.0001;
+      int xloc = (x - x_min )/dx + 0.1f;
+      int zloc = (z - 0.0f) /dz+0.1f;
+      //cout<<"is "<< is <<" ig "<<ig<<" xloc "<<xloc<<" zloc "<< zloc << endl;
       check(xloc>=0 && xloc<nx,"error: getIgz in inversion.cpp xloc must be within range [0,nx)");
       check(zloc>=0 && zloc<NZ,"error: getIgz in inversion.cpp zloc musg be within range [0,NZ)");
       igz[xloc] = zloc;
     }
   }
   return igz;
+}
+void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj)
+{
+  adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
+  float dx = param.dx.val;
+  float x_min = fx - 0.001*dx;
+  float x_max = fx + ( nx - 1 ) * dx +0.001*dx;
+  for(int ig = 0; ig < ng  ; ig ++)
+    {
+      float gx = gc[is][0][ig];
+      if( x_min<=gx && gx<=x_max)
+	{
+	  int xloc = (gx - x_min)/dx+0.1f ;
+	  //cout<<"is "<< is << "ig "<< ig << "xloc " << xloc <<endl;
+	  check( xloc>=0 && xloc<nx , "error: getRecord in inversion.cpp xloc must be within range [0,nx)") ;
+	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
+	}
+    }
 }
 void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,int nxm,int nzd,int nxd, bool add)
 {
@@ -619,8 +641,8 @@ void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,
   if(!add)
     opern(d,VALUE,nzd,nxd,0.0f);
   float dx    = param.dx.val;
-  float x_min = mfx -0.0001*dx  ;
-  float x_max = mfx + (nxm - 1) * dx +0.0001*dx;
+  float x_min = mfx -0.001*dx  ;
+  float x_max = mfx + (nxm - 1) * dx +0.001*dx;
   for(int ix = layer; ix < nxd-layer ; ix ++)
     {
       float xcor = dfx + ( ix - 1 ) * dx ;
@@ -634,24 +656,7 @@ void Inversion::swapModel(float ** m, float ** d, float mfx, float dfx, int nzm,
 	}
     }
 }
-void Inversion::swapReord(float **CSG, int is, int ng, int nt, float ** rec, float fx, int nx, bool adj)
-{
-  adj? opern(CSG,VALUE,nt,ng,0.0f) : opern(rec,VALUE,nt,nx,0.0f);
-  float dx = param.dx.val;
-  float x_min = fx;
-  float x_max = fx + ( nx - 1 ) * dx ;
-  for(int ig = 0; ig < ng  ; ig ++)
-    {
-      float gx = gc[is][0][ig];
-      if( x_min<=gx && gx<=x_max)
-	{
-	  int xloc = (gx - x_min)/dx+0.1f ;
-	  //cout<<"is "<< is << "ig "<< ig << "xloc " << xloc <<endl;
-	  check( xloc>=0 && xloc<nx , "error: getRecord in inversion.cpp xloc must be within range [0,nx)") ;
-	  adj ? memcpy(CSG[ig],rec[xloc],sizeof(float)*nt) : memcpy(rec[xloc],CSG[ig],sizeof(float)*nt) ;
-	}
-    }
-}
+
 string Inversion::obtainCSGName  (int is)
 {
   char name[256];
@@ -1185,6 +1190,44 @@ void Inversion::test()
       write(file,nt,ng[1],CSGN);
       }
   }
+	if(true)
+	{
+		
+  string v0file = param.v0file.val;
+  float ** v0 = MyAlloc<float>::alc(param.nz.val,param.nx.val);
+  read(v0file,param.nz.val,param.nx.val,v0);
+			int is = 500;
+		int nx   = param.nx.val;
+	    int nz   = param.nz.val;
+	    int nt   = param.nt.val;
+	    int npml     = param.npml.val;
+	    int delay    = param.delay.val;
+	    int delaycal = param.delaycal.val;
+	    int ngmax = param.ngmax.val;
+	    float dt  = param.dt.val;
+	    float dx  = param.dx.val;
+	    float dz  = param.dz.val;
+	    float fr  = param.fr.val;
+	    // check the velocity model used for each shot
+	    string wdir = param.wdir.val;
+	    int NT = nt + delaycal;
+	    int numdelay = delay + delaycal;
+	    float * wav = rickerWavelet(dt,fr,numdelay,NT);
+	    float ** CSG = MyAlloc<float>::alc(nt,ngmax);
+	    float ** mask= MyAlloc<float>::alc(nz,nx);
+	    float velfx  = param.velfx.val;
+	    float velfxsub;
+	    int  nzsub;
+	    int  nxsub;
+	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
+	    float ** recsub = MyAlloc<float>::alc(nt,nxsub);
+	    string recfile;
+	      recfile = obtainCSGName(is);
+	    read(recfile,nt,ng[is],CSG);
+	    removeDirect(CSG,v0,is);
+	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
+	    int * igz = getIgz(velfxsub,nxsub,is);
+	}
 
 	  
       
