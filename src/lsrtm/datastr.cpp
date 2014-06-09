@@ -99,4 +99,6 @@ void paramLSRTM::print()
   vfile.print();
   maskfile.print();
   coordfile.print();
+  sbegin.print();
+  send.print();
 }

@@ -37,7 +37,7 @@ int main(int argc, char *argv[], char *envp[])
 	inv.getConfig();
 	inv.test();
   //--stop mp
-  test();
+  //test();
   
   MPI_Finalize();
   return 0;
@@ -62,13 +62,13 @@ void test()
 		opern(rec[ix],VALUE,nt,0.0f);
     Taup taup(dt,  nt, x0, dx,  nx, p0,  dp,  np );
     //Taup::apply(rec,A,false,dt,nt,x0,dx,nx,p0,dp,np);
-    taup.apply(rec,A,false);
+    taup.apply(rec,A,false,false);
     write("/home/sunbb/sh/WEMVA/rec_mute.bin",nt,nx,rec);
     write("/home/sunbb/sh/WEMVA/a_2000_80.bin",nt,np,A);
     for(int ix=0;ix<nx;ix++)
 		opern(rec[ix],VALUE,nt,0.0f);
     //Taup::apply(rec,A,true,dt,nt,x0,dx,nx,p0,dp,np);
-    taup.apply(rec,A,true);
+    taup.apply(rec,A,true,false);
     write("/home/sunbb/sh/WEMVA/at_2000_80.bin",nt,nx,rec);
     exit(0);
   }

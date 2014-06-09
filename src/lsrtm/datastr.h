@@ -53,6 +53,8 @@ class paramLSRTM
  public:
   void print();
  public:
+  paramInt   sbegin{paramInt("sbegin",0,0,0)};
+  paramInt   send{paramInt("send",0,0,0)};
   paramInt   planeTag{paramInt("planeTag",0,0,1)};
   paramInt   nthread{paramInt("nthread",0,1,1)};
   paramInt   ns{paramInt("ns",0,0,0)},   ngmax{paramInt("ngmax",0,0,0)};

@@ -53,6 +53,8 @@ void Inversion::readParamFile(string file)
     pff.getInt   ( param.lpad      );
     pff.getInt   ( param.rpad      );
     pff.getInt   ( param.planeTag  );
+    pff.getInt   ( param.sbegin    );
+    pff.getInt   ( param.send      );
     // float parameters
     pff.getFloat ( param.dx        );
     pff.getFloat ( param.dz        );
@@ -374,6 +376,8 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
   int itotal= 0;
   int myid = rank;
   int ns  =  param.ns.val;
+  int sbegin = param.sbegin.val;
+  int send   = param.send.val;
   MPI_Status  status;
   if(rank==0)
     masterRun(ns);
@@ -386,59 +390,62 @@ void  Inversion::adjoint_MPI( float ** img, int migTag)
 	  MPI_Recv(&is, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);   //receive a new shot
 	  if(is >=0 && is < ns){
 	    idone++;
-	    int nx   = param.nx.val;
-	    int nz   = param.nz.val;
-	    int nt   = param.nt.val;
-	    int npml     = param.npml.val;
-	    int delay    = param.delay.val;
-	    int delaycal = param.delaycal.val;
-	    int ngmax = param.ngmax.val;
-	    float dt  = param.dt.val;
-	    float dx  = param.dx.val;
-	    float dz  = param.dz.val;
-	    float fr  = param.fr.val;
-	    // check the velocity model used for each shot
-	    string wdir = param.wdir.val;
-	    int NT = nt + delaycal;
-	    int numdelay = delay + delaycal;
-	    float * wav = rickerWavelet(dt,fr,numdelay,NT);
-	    float ** CSG = MyAlloc<float>::alc(nt,ngmax);
-	    float ** mask= MyAlloc<float>::alc(nz,nx);
-	    float velfx  = param.velfx.val;
-	    float velfxsub;
-	    int  nzsub;
-	    int  nxsub;
-	    float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
-	    float ** recsub = MyAlloc<float>::alc(nt,nxsub);
-	    string recfile;
-	    if(migTag==RTM_IMG)
-	      recfile = obtainCSGName(is);
-	    else
-	      recfile = obtainBornName(is);
-	    read(recfile,nt,ng[is],CSG);
-	    removeDirect(CSG,v0,is);
-	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
-	    int * igz = getIgz(velfxsub,nxsub,is);
-	    int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
-	    int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
-	    cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
-	    float ** imgsub = adjoint ( dt,  dx , dz, nt, delaycal, nxsub, nzsub, npml,  sx, sz, igz, wav, velsub, recsub);
-	    float ** imgtmp = MyAlloc<float>::alc(nz,nx);
-	    swapModel(imgsub, imgtmp, velfxsub, velfx, nzsub,nxsub, nz,nx, false);
-	    string imgfile = obtainNameDat(param.wdir.val,"CSG_IMAGE",is);
-	    if(param.mask.val){
-	    read(param.maskfile.val,nz,nx,mask);
-	    opern(imgtmp,imgtmp,mask,MUL,nz,nx);
-	    }
-	    write(imgfile,nz,nx,imgtmp);
-	    MyAlloc<int>::free(igz);
-	    MyAlloc<float>::free(CSG);
-	    MyAlloc<float>::free(wav);
-	    MyAlloc<float>::free(velsub);
-	    MyAlloc<float>::free(recsub);
-	    MyAlloc<float>::free(imgsub);
-	    MyAlloc<float>::free(imgtmp);
-	    MyAlloc<float>::free(mask);
+	    if(is>=sbegin && is<=send)
+	      {
+		int nx   = param.nx.val;
+		int nz   = param.nz.val;
+		int nt   = param.nt.val;
+		int npml     = param.npml.val;
+		int delay    = param.delay.val;
+		int delaycal = param.delaycal.val;
+		int ngmax = param.ngmax.val;
+		float dt  = param.dt.val;
+		float dx  = param.dx.val;
+		float dz  = param.dz.val;
+		float fr  = param.fr.val;
+		// check the velocity model used for each shot
+		string wdir = param.wdir.val;
+		int NT = nt + delaycal;
+		int numdelay = delay + delaycal;
+		float * wav = rickerWavelet(dt,fr,numdelay,NT);
+		float ** CSG = MyAlloc<float>::alc(nt,ngmax);
+		float ** mask= MyAlloc<float>::alc(nz,nx);
+		float velfx  = param.velfx.val;
+		float velfxsub;
+		int  nzsub;
+		int  nxsub;
+		float ** velsub = getVel(velfxsub, nzsub, nxsub, v0, nz, nx, velfx, is);
+		float ** recsub = MyAlloc<float>::alc(nt,nxsub);
+		string recfile;
+		if(migTag==RTM_IMG)
+		  recfile = obtainCSGName(is);
+		else
+		  recfile = obtainBornName(is);
+		read(recfile,nt,ng[is],CSG);
+		removeDirect(CSG,v0,is);
+		swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
+		int * igz = getIgz(velfxsub,nxsub,is);
+		int sx = (int)((this->sc[is][0] - velfxsub)/dx+0.0001f);
+		int sz = (int)((this->sc[is][1] - 0.0     )/dz+0.0001f);
+		cout<<"shot "<< is << " source x: "<<sc[is][0] << " source z: "<<sc[is][1]<<endl;
+		float ** imgsub = adjoint ( dt,  dx , dz, nt, delaycal, nxsub, nzsub, npml,  sx, sz, igz, wav, velsub, recsub);
+		float ** imgtmp = MyAlloc<float>::alc(nz,nx);
+		swapModel(imgsub, imgtmp, velfxsub, velfx, nzsub,nxsub, nz,nx, false);
+		string imgfile = obtainNameDat(param.wdir.val,"CSG_IMAGE",is);
+		if(param.mask.val){
+		  read(param.maskfile.val,nz,nx,mask);
+		  opern(imgtmp,imgtmp,mask,MUL,nz,nx);
+		}
+		write(imgfile,nz,nx,imgtmp);
+		MyAlloc<int>::free(igz);
+		MyAlloc<float>::free(CSG);
+		MyAlloc<float>::free(wav);
+		MyAlloc<float>::free(velsub);
+		MyAlloc<float>::free(recsub);
+		MyAlloc<float>::free(imgsub);
+		MyAlloc<float>::free(imgtmp);
+		MyAlloc<float>::free(mask);
+	      }
 	    sleep(2); 
 	    MPI_Send(&is, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);    //send finished shot, and ask for another new shot
 	  } else {
@@ -1190,7 +1197,7 @@ void Inversion::test()
       write(file,nt,ng[1],CSGN);
       }
   }
-	if(true)
+	if(false)
 	{
 		
   string v0file = param.v0file.val;

@@ -51,14 +51,16 @@ class Taup
    *@param tx data in t-x domain
    *@param tp data in t-p domain
    *@param adj false for taup transform, true for adjoint taup transform 
+   *@param add clear output or not, false will clear output
    */
-  void apply(float ** tx,float ** tp,bool adj);
+  void apply(float ** tx,float ** tp,bool adj,bool add);
   /**
    *Apply taup transform . 
    *Implement directly without saving temporay variable: v_iit, v_it , v_ip, v_aa
    *@param tx data in t-x domain
    *@param tp data in t-p domain
    *@param adj false for taup transform, true for adjoint taup transform
+   *@param add clear output or not, false will clear output
    *@param dt time sample step
    *@param nt number of time sample
    *@param x0 first sample of x
@@ -68,7 +70,7 @@ class Taup
    *@param dp p sample step
    *@param np number of sample of p 
    */
-  static void apply(float ** tx, float **tp, bool adj, float dt, int nt, float x0, float dx, int nx, float p0, float dp, int np);
+  static void apply(float ** tx, float **tp, bool adj, bool add, float dt, int nt, float x0, float dx, int nx, float p0, float dp, int np);
  private:
   /**
    * Initialize the temporary variable : v_iit, v_it, v_ip, v_aa

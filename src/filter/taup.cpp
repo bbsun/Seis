@@ -55,13 +55,14 @@ void Taup::init()
     }
   }
 }
-void Taup::apply(float ** tx,float ** tp,bool adj)
+void Taup::apply(float ** tx,float ** tp,bool adj, bool add)
 {
+  if(!add){
   if(!adj)
     opern(tp,VALUE,nt,np,0.0f);
   else
     opern(tx,VALUE,nt,nx,0.0f);
-    
+  }
   if(!adj){
 	  cout<<"forward taup transform"<<endl;
     for(int ix=0;ix<nx;ix++){
@@ -90,12 +91,14 @@ void Taup::apply(float ** tx,float ** tp,bool adj)
     }
   }
 }
-void Taup::apply(float ** tx, float **tp, bool adj, float dt, int nt, float x0, float dx, int nx, float p0, float dp, int np)
+void Taup::apply(float ** tx, float **tp, bool adj, bool add, float dt, int nt, float x0, float dx, int nx, float p0, float dp, int np)
 {
+  if(!add){
    if(!adj)
     opern(tp,VALUE,nt,np,0.0f);
   else
     opern(tx,VALUE,nt,nx,0.0f);
+  }
     if(!adj){
 		cout<<"forward taup transform"<<endl;
 		  for(int ip=0;ip<np;ip++){
