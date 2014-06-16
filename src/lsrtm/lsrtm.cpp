@@ -38,7 +38,7 @@ int main(int argc, char *argv[], char *envp[])
 	inv.test();
   //--stop mp
   //test();
-  
+	int bbb;
   MPI_Finalize();
   return 0;
 }
