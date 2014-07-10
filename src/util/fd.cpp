@@ -337,6 +337,258 @@ float ** illum(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, i
   MyAlloc<float>::free(sspml);
   return ss;
 }
+float ** adjointUpDown(float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float *wavh,float **vel,float **rec, float **rech,float ***imagX)
+{
+	 int layer = 4;
+  int nzpml = nz + 2*pml;
+  int nxpml = nx + 2*pml;
+  int szpml = sz + pml;
+  int sxpml = sx + pml;
+  float invdx2 = 1.0f/(dx*dx);
+  float invdz2 = 1.0f/(dz*dz);
+  float dt2     = 1.0f/dt/dt;
+  int *  izpml  = MyAlloc<int> ::alc(nx);
+  float ** w2d    = setAbs(nz,nx,pml);
+  float ** velpml = setVel(vel,nz,nx,pml);
+  float ** img    = MyAlloc<float>::alc(nz,nx);
+  float ** imgpml = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vt2    = MyAlloc<float>::alc(nzpml,nxpml); 
+  float ** u0     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u0b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u1b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u2b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** u21b    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut0     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut1     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut2     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut21    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut0b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut1b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut2b     = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** ut21b    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** Sh       = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** Rh       = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** Sth      = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** Rth      = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvzz   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vvxx   = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** lap    = MyAlloc<float>::alc(nzpml,nxpml);
+  float ** vel3pml= MyAlloc<float>::alc(nzpml,nxpml);
+  float *** up    = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***down   = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***right  = MyAlloc<float>::alc(nt,nzpml,layer);
+  float ***left   = MyAlloc<float>::alc(nt,nzpml,layer);
+  float *** up_t    = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***down_t   = MyAlloc<float>::alc(nt,layer,nxpml);
+  float ***right_t  = MyAlloc<float>::alc(nt,nzpml,layer);
+  float ***left_t   = MyAlloc<float>::alc(nt,nzpml,layer);
+  float ** img00    = imagX[0];
+  float ** imgzz    = imagX[1];
+  float ** imgtz    = imagX[2];
+  float ** imgzt    = imagX[3];
+  opern(vt2,velpml, velpml, COPY, nzpml, nxpml);
+  opern(vt2,vt2   ,    vt2, SCAL, nzpml, nxpml, dt);
+  opern(vt2,vt2   ,    vt2,  MUL, nzpml, nxpml);
+  opern(vvzz,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvxx,vt2,vt2,COPY,nzpml,nxpml);
+  opern(vvzz,vvzz,vvzz,SCAL,nzpml,nxpml,invdz2);
+  opern(vvxx,vvxx,vvxx,SCAL,nzpml,nxpml,invdx2);
+  LOOP
+    vel3pml[ix][iz] = 2.0f/(velpml[ix][iz]*velpml[ix][iz]*velpml[ix][iz]);
+  for(int ix =0 ; ix < nx ; ix++)
+    izpml[ix] = gz[ix]+pml;
+  int NT = nt + ndel;
+  // source wavefield 
+  cout<<"source wavefield calculation "<<endl;
+  for(int it=0;it<NT;it++)
+    {
+	  if(it%500==0) cout<<it<<endl;
+      modeling2D_high(u0,u1,u2,vvzz,vvxx,nzpml,nxpml);
+      int itp = it - 1;
+      if( itp >=0)
+	u2[sxpml][szpml] += vt2[sxpml][szpml]*wav[itp];
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u2,u1,u0); 
+      LOOP
+	u2[ix][iz] = u2[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]); 
+      itp = it - ndel;
+      if(itp>=0)
+      SaveAtBoundary(up,down,right,left,u2,pml,layer,nz,nx,true,itp);
+      float ** tp = u0;
+      u0 = u1;
+      u1 = u2;
+      u2 = tp;
+    }
+  // hilbert of the source wavefield 
+  cout<<"hilbert of source wavefield "<<endl;
+  for(int it=0;it<NT;it++)
+    {
+	  if(it%500==0) cout<<it<<endl;
+      modeling2D_high(ut0,ut1,ut2,vvzz,vvxx,nzpml,nxpml);
+      int itp = it - 1;
+      if( itp >=0)
+	ut2[sxpml][szpml] += vt2[sxpml][szpml]*wavh[itp];
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,ut21,ut2,ut1,ut0); 
+      LOOP
+	ut2[ix][iz] = ut2[ix][iz]*w2d[ix][iz] + ut21[ix][iz]*(1.0f-w2d[ix][iz]); 
+      itp = it - ndel;
+      if(itp>=0)
+      SaveAtBoundary(up_t,down_t,right_t,left_t,ut2,pml,layer,nz,nx,true,itp);
+      float ** tp = ut0;
+      ut0 = ut1;
+      ut1 = ut2;
+      ut2 = tp;
+    }
+  opern(u0, VALUE,nzpml,nxpml,0.0f);
+  opern(u1, VALUE,nzpml,nxpml,0.0f);
+  opern(u2, VALUE,nzpml,nxpml,0.0f);
+  opern(ut0,VALUE,nzpml,nxpml,0.0f);
+  opern(ut1,VALUE,nzpml,nxpml,0.0f);
+  opern(ut2,VALUE,nzpml,nxpml,0.0f);
+  int half = 30;
+  Hilbert<float> hl(30);
+  cout<<"back propogation and imaging "<<endl;
+  for(int it=NT-1;it>=ndel;it--)
+    {
+      if(it%500==0) cout<<it<<endl;
+		// sources wavefield 
+      int itp = it-1;
+      if(itp>0)
+      u2[sxpml][szpml] -=vt2[sxpml][szpml]*wav[itp];
+      itp = it-ndel;
+      SaveAtBoundary(up,down,right,left,u1,pml,layer,nz,nx,false,itp);
+      modeling2D_high(u2,u1,u0,vvzz,vvxx,nzpml,nxpml);
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21,u0,u1,u2);
+      LOOP
+	     u0[ix][iz] = u0[ix][iz]*w2d[ix][iz] + u21[ix][iz]*(1.0f-w2d[ix][iz]);
+	
+	 // hilbert of the source wavefield 
+	 itp = it-1;
+      if(itp>0)
+      ut2[sxpml][szpml] -=vt2[sxpml][szpml]*wavh[itp];
+      itp = it-ndel;
+      SaveAtBoundary(up_t,down_t,right_t,left_t,ut1,pml,layer,nz,nx,false,itp);
+      modeling2D_high(ut2,ut1,ut0,vvzz,vvxx,nzpml,nxpml);
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,ut21,ut0,ut1,ut2);
+      LOOP
+	    ut0[ix][iz] = ut0[ix][iz]*w2d[ix][iz] + ut21[ix][iz]*(1.0f-w2d[ix][iz]);
+	
+      // receiver wavefield 
+      
+      modeling2D_high(u2b,u1b,u0b,vvzz,vvxx,nzpml,nxpml);
+      if(itp >=0)
+	for(int ix=0;ix<nx;ix++){
+	  int iz          = izpml[ix];
+	  u0b[ix+pml][iz]+=  rec[ix][itp]*vt2[ix+pml][iz] ;
+	}
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,u21b,u0b,u1b,u2b);
+      LOOP
+      u0b[ix][iz] = u0b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]);
+       
+       // hilbert of the receiver wavefield 
+     /*  modeling2D_high(ut2b,ut1b,ut0b,vvzz,vvxx,nzpml,nxpml);
+      if(itp >=0)
+	for(int ix=0;ix<nx;ix++){
+	  int iz          = izpml[ix];
+	  ut0b[ix+pml][iz]+=  rech[ix][itp]*vt2[ix+pml][iz] ;
+	}
+      processBoundary(dt,dx,dz,nx,nz,pml,velpml,ut21b,ut0b,ut1b,ut2b);
+      LOOP
+	    ut0b[ix][iz] = ut0b[ix][iz]*w2d[ix][iz] + ut21b[ix][iz]*(1.0f-w2d[ix][iz]);
+      */
+      float ** S = u0;
+      float ** R = u0b;
+      float ** St= ut0;
+      float ** Rt= ut0b;
+      #ifdef _OPENMP
+  (void) omp_set_dynamic(false);
+  if (omp_get_dynamic()) {printf("Warning: dynamic adjustment of threads has been set\n");}
+  (void) omp_set_num_threads(OMP_CORE);
+#endif
+#pragma omp parallel for
+      for(int ix = pml;ix<(nxpml-pml);ix++){
+		  hl.apply(S[ix],Sh[ix],nzpml);
+		  hl.apply(R[ix],Rh[ix],nzpml);
+		  hl.apply(St[ix],Sth[ix],nzpml);
+		 // hl.apply(Rt[ix],Rth[ix],nzpml);
+		  for(int iz=0;iz<nzpml;iz++){
+			  img00[ix][iz] +=S[ix][iz]  *R[ix][iz];  // sr
+			  imgzz[ix][iz] +=Sh[ix][iz] *Rh[ix][iz]; // sz  rz 
+			  imgzt[ix][iz] +=Sth[ix][iz]*R [ix][iz]; // stz r
+			  imgtz[ix][iz] +=St[ix][iz] *Rh[ix][iz]; // st  rz
+		  }
+		  
+	  }
+      float ** tp = u2;
+      u2 = u1;
+      u1 = u0;
+      u0 = tp;
+      float ** tpb = u2b;
+      u2b = u1b;
+      u1b = u0b;
+      u0b = tpb;
+      
+      float ** tp_t = ut2;
+      ut2 = ut1;
+      ut1 = ut0;
+      ut0 = tp_t;
+      float ** tpb_t = ut2b;
+      ut2b = ut1b;
+      ut1b = ut0b;
+      ut0b = tpb_t;
+      }
+      cout<<"finish imaging "<<endl;
+  for(int ix = 0; ix<nx;ix++)
+    for(int iz=0;  iz<nz;iz++){
+		int xx = ix+pml;
+		int zz = iz+pml;
+		float i00 = img00[xx][zz];
+		float izz = imgzz[xx][zz];
+		float izt = imgzt[xx][zz];
+		float itz = imgtz[xx][zz];
+      img[ix][iz] = i00-izz+izt+itz;
+  }
+  MyAlloc<int>  ::free(izpml);
+  MyAlloc<float>::free(u0);
+  MyAlloc<float>::free(u1);
+  MyAlloc<float>::free(u2);
+  MyAlloc<float>::free(u0b);
+  MyAlloc<float>::free(u1b);
+  MyAlloc<float>::free(u2b);
+  MyAlloc<float>::free(w2d);
+  MyAlloc<float>::free(u21);
+  MyAlloc<float>::free(u21b);
+  MyAlloc<float>::free(ut0);
+  MyAlloc<float>::free(ut1);
+  MyAlloc<float>::free(ut2);
+  MyAlloc<float>::free(ut0b);
+  MyAlloc<float>::free(ut1b);
+  MyAlloc<float>::free(ut2b);
+  MyAlloc<float>::free(ut21);
+  MyAlloc<float>::free(ut21b);
+  MyAlloc<float>::free(vvzz);
+  MyAlloc<float>::free(vvxx);
+  MyAlloc<float>::free(velpml);
+  MyAlloc<float>::free(vel3pml);
+  MyAlloc<float>::free(vt2);
+  MyAlloc<float>::free(lap);
+  MyAlloc<float>::free(up);
+  MyAlloc<float>::free(down);
+  MyAlloc<float>::free(right);
+  MyAlloc<float>::free(left);
+  MyAlloc<float>::free(up_t);
+  MyAlloc<float>::free(down_t);
+  MyAlloc<float>::free(right_t);
+  MyAlloc<float>::free(left_t);
+  MyAlloc<float>::free(Sh);
+  MyAlloc<float>::free(Rh);
+  MyAlloc<float>::free(Sth);
+  MyAlloc<float>::free(Rth);
+  MyAlloc<float>::free(imgpml);
+  return img;
+}
 float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz, int pml, int sx, int sz, int * gz, float * wav, float **vel,float ** rec)
 {
   int layer = 4;
@@ -428,8 +680,8 @@ float ** adjoint (float dt, float dx, float dz, int nt, int ndel, int nx, int nz
 	u0b[ix][iz] = u0b[ix][iz]*w2d[ix][iz] + u21b[ix][iz]*(1.0f-w2d[ix][iz]);
       LOOP
        imgpml[ix][iz] += lap[ix][iz] * vel3pml[ix][iz] * u0b[ix][iz];
-      //opern(lap,lap,vel3pml,MUL,nzpml,nxpml);
-      //FaQi(lap,u0b,imgpml,nz,nx,pml);
+      opern(lap,lap,vel3pml,MUL,nzpml,nxpml);
+      FaQi(lap,u0b,imgpml,nz,nx,pml);
       float ** tp = u2;
       u2 = u1;
       u1 = u0;

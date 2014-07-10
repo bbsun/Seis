@@ -1155,7 +1155,7 @@ void Inversion::test()
 		   
 		  }
 	   writeSu("source.su",NT,nx,sou);
-	   OMP_CORE = 4;
+	   //OMP_CORE = nthread;
 	  rec= forwordPlane(dt, dx, dz, nt, delaycal, nx, nz, 20, sz, gz, v0, sou, dv);
 	  writeSu("rec.su",nt,nx,rec);
 	  write("rec.dat",nt,nx,rec);
@@ -1178,7 +1178,7 @@ void Inversion::test()
       OMP_CORE = param.nthread.val;
       
       
-      if(false){
+    /*  if(false){
       cout<<" test of shift "<<endl;
       float ** CSG = MyAlloc<float>::alc(nt,ng[1]);
       float ** CSGN= MyAlloc<float>::alc(nt,ng[1]);
@@ -1235,7 +1235,7 @@ void Inversion::test()
 	    swapReord( CSG, is, this->ng[is], nt, recsub, velfxsub, nxsub, false );
 	    int * igz = getIgz(velfxsub,nxsub,is);
 	}
-
+*/
 	  
       
       //forward_MPI(dv);

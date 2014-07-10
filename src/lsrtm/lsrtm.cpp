@@ -17,6 +17,8 @@
 #include "../filter/dct.h"
 #include "../filter/smooth.h"
 #include "../filter/taup.h"
+#include "../filter/hilbert.h"
+extern int OMP_CORE;
 using std::string;
 using std::ifstream;
 using std::cout;
@@ -32,12 +34,12 @@ int main(int argc, char *argv[], char *envp[])
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   //--read param 
-	Inversion inv(rank,nprocs);
-	inv.readParamFile(argv[1]);
-	inv.getConfig();
-	inv.test();
+	//Inversion inv(rank,nprocs);
+	//inv.readParamFile(argv[1]);
+	//inv.getConfig();
+	//inv.test();
   //--stop mp
-  //test();
+   test();
 	int bbb;
   MPI_Finalize();
   return 0;
@@ -45,6 +47,73 @@ int main(int argc, char *argv[], char *envp[])
 void test()
 {
   if(true){
+  cout<<"test of the imaging condition for RTM"<<endl;
+  float dt  = 0.0005;
+  int   nt  = 14000;
+  float dx  = 7.5f;
+  float dz  = 7.5f;
+  int   nx  = 1001;
+  int   nz  = 600;
+  int   sx  =  500;
+  int   sz  =    0;
+  int   pml =   30;
+  int   nzpml = nz + pml*2;
+  int   nxpml = nx + pml*2;
+  float ** v=    MyAlloc<float>::alc(nz,nx);
+  float **v0=    MyAlloc<float>::alc(nz,nx);
+  float **rec=   MyAlloc<float>::alc(nt,nx);
+  float **rech=  MyAlloc<float>::alc(nt,nx);
+  float **vc=    MyAlloc<float>::alc(nz,nx);
+  int * igz=MyAlloc<int>::alc(nx);
+   cout<<"aaa"<<endl;
+  for(int ix=0;ix<nx;ix++)
+  igz[ix]=0;
+  cout<<"bbb"<<endl;
+  int delay = 0;
+  int delaycal = 500;
+  int NT = nt + delaycal;
+  int numdelay = delay + delaycal;
+  float fr = 25.0f;
+  cout<<"bbb"<<endl;
+  float *   wav = rickerWavelet(dt,fr,numdelay,NT);
+  float *  wavh = MyAlloc<float>::alc(NT)         ;
+   float *** imgX = MyAlloc<float>::alc(nzpml,nxpml,4);
+  OMP_CORE = 16;
+  cout<<"read begin"<<endl;
+  read("/home/sunbb/sh/model/velx_600_1001.dat",nz,nx, v);
+  read("/home/sunbb/sh/model/velsm_600_1001.dat",nz,nx,v0);
+  cout<<"read finish"<<endl;
+	for(int is = 0;is<nx;is+=4){
+		sx = is;
+		cout<<"shot "<< sx <<endl;
+  rec         =      modeling( dt,  dx,  dz,  nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v);
+  //write("rec.dat",nt,nx,rec);
+  //read("rec0.dat", nt,nx,rec);
+   opern(vc,VALUE,nz,nx,1500.0f);
+   float **rec0         =      modeling( dt,  dx,  dz,  nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, vc);
+   opern(rec,rec0,rec,SUB,nt,nx);
+  //write("rec0.dat",nt,nx,rec);
+  //read("rec0.dat",nt,nx,rec);
+ 
+  Hilbert<float> hl(100);
+  //hilbert transform of the sources 
+  hl.apply(wav,wavh,nt);
+  // hilbert of the record
+  for(int ix=0;ix<nx;ix++)
+  hl.apply(rec[ix],rech[ix],nt);
+  float ** img = adjointUpDown( dt, dx, dz, nt, delaycal, nx, nz, pml, sx, sz, igz,  wav, wavh,v0, rec,  rech, imgX);
+  writeSu("img_bing.su",nz,nx,img);
+  writeSu("img00.su",nzpml,nxpml,imgX[0]);
+  writeSu("imgzz.su",nzpml,nxpml,imgX[1]);
+  writeSu("imgzt.su",nzpml,nxpml,imgX[2]);
+  writeSu("imgtz.su",nzpml,nxpml,imgX[3]);
+  MyAlloc<float>::free(rec);
+  MyAlloc<float>::free(rec0);
+  MyAlloc<float>::free(img);
+}
+  exit(0);
+  }
+  if(false){
     cout<<"test of the radon transform "<<endl;
     cout<<"large memory required "<<endl;
     int nt = 2000;
@@ -152,8 +221,8 @@ void test()
       {
 	v[ix][iz]=4500.0f;
 	}*/
-  rec1=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
-  float **rec4=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
+  rec1         =  modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
+  float **rec4 =  modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v0 );
   opern(rec1,rec1,rec4,SUB,nt,nx);
   write("rec.bin",nt,nx,rec1);
   read("rec.bin",nt,nx,rec1);
@@ -168,9 +237,9 @@ void test()
   write("born.bin",nt,nx,born);
   writeSu("born.su",nt,nx,born);*/
   float ** img  = adjoint ( dt, dx,  dz,  nt, delaycal, nx, nz, pml, sx, sz, igz, wav, v0, rec1);
-  writeSu("img0.su",nz,nx,img);
+  writeSu( "img0.su",nz,nx,img  );
   SumSpray(img,nz,nx);
-  writeSu("img.su",nz,nx,img);
+  writeSu( "img.su", nz,nx,img  );
   exit(0);
   corWavelet2D(wav, dt,NT);
   float **rec2=modeling( dt,  dx,  dz, nt, delaycal, nx, nz, pml, sx,  sz,  igz, wav, v );
