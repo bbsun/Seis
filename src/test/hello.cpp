@@ -20,6 +20,7 @@ int a_out;
 // variable defined outside function has a default value of zero
 void cppstudy(int argc, char* argv[],char * envp[])
 {
+  print<<"modify it "<<ed;
   ParserFromFile pff("param2.txt");
   string key="velfile",key1="logfile",key3="sadsad";
   string velfile;
